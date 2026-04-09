@@ -7,17 +7,17 @@ import type {
 } from "./types";
 
 export const defaultBuyData = (): BuyBlockData => ({
-  cost: "",
-  interestRate: "",
-  downpayment: "",
-  downpaymentType: "$",
-  closingCosts: "",
-  closingCostsType: "$",
-  propertyTaxes: "",
-  propertyTaxesType: "$",
-  homeownersInsurance: "",
+  cost: "225000",
+  interestRate: "6",
+  downpayment: "20",
+  downpaymentType: "%",
+  closingCosts: "3",
+  closingCostsType: "%",
+  propertyTaxes: "1",
+  propertyTaxesType: "%",
+  homeownersInsurance: "740",
   homeownersInsuranceType: "$",
-  loanTerm: "",
+  loanTerm: "30",
   customLoanTerm: "",
   interestOnlyOption: false,
   loanAnalysis: {

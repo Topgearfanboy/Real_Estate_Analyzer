@@ -7,6 +7,7 @@ import { CurrencyOrPercentageField } from "../uiComponents/fieldTypes/CurrencyOr
 import { ButtonGroup } from "../uiComponents/ButtonGroup";
 import { AnalysisItem } from "../uiComponents/AnalysisItem";
 import { CollapsibleSection } from "../uiComponents/CollapsibleSection";
+import { SegmentedProgressBar } from "../uiComponents/SegmentedProgressBar";
 import {
   handleDownpaymentTypeChange,
   handleClosingCostsTypeChange,
@@ -152,69 +153,132 @@ export function BuyBlock({ data, onChange }: BuyBlockProps) {
         </label>
       </div>
 
-      <CollapsibleSection
-        title="Purchase Summary"
-        expanded={purchaseSummaryExpanded}
-        onToggle={() => setPurchaseSummaryExpanded(!purchaseSummaryExpanded)}
-      >
-        <div className="space-y-2">
-          {(() => {
-            const costNum = parseFloat(data.cost.replace(/[^0-9.]/g, "")) || 0;
+      {/* Purchase Summary with always-visible Monthly Payment */}
+      {(() => {
+        const costNum = parseFloat(data.cost.replace(/[^0-9.]/g, "")) || 0;
 
-            // Calculate downpayment in dollars based on type
-            const downpaymentRaw =
-              parseFloat(data.downpayment.replace(/[^0-9.]/g, "")) || 0;
-            const downpaymentNum =
-              data.downpaymentType === "%"
-                ? (downpaymentRaw / 100) * costNum
-                : downpaymentRaw;
+        // Calculate downpayment in dollars based on type
+        const downpaymentRaw =
+          parseFloat(data.downpayment.replace(/[^0-9.]/g, "")) || 0;
+        const downpaymentNum =
+          data.downpaymentType === "%"
+            ? (downpaymentRaw / 100) * costNum
+            : downpaymentRaw;
 
-            // Calculate closing costs in dollars based on type
-            const closingRaw =
-              parseFloat(data.closingCosts.replace(/[^0-9.]/g, "")) || 0;
-            const closingNum =
-              data.closingCostsType === "%"
-                ? (closingRaw / 100) * costNum
-                : closingRaw;
+        // Calculate closing costs in dollars based on type
+        const closingRaw =
+          parseFloat(data.closingCosts.replace(/[^0-9.]/g, "")) || 0;
+        const closingNum =
+          data.closingCostsType === "%"
+            ? (closingRaw / 100) * costNum
+            : closingRaw;
 
-            const loanAmount = costNum - downpaymentNum;
-            const totalCashNeeded = downpaymentNum + closingNum;
+        const loanAmount = costNum - downpaymentNum;
+        const totalCashNeeded = downpaymentNum + closingNum;
 
-            // Calculate monthly payment using mortgage formula
-            const rateNum = parseFloat(data.interestRate) || 0;
-            const termYears = parseInt(data.loanTerm) || 30;
-            const monthlyRate = rateNum / 100 / 12;
-            const numPayments = termYears * 12;
-            let monthlyPayment = 0;
-            if (loanAmount > 0 && rateNum > 0) {
-              monthlyPayment =
-                (loanAmount *
-                  monthlyRate *
-                  Math.pow(1 + monthlyRate, numPayments)) /
-                (Math.pow(1 + monthlyRate, numPayments) - 1);
-            } else if (loanAmount > 0) {
-              monthlyPayment = loanAmount / numPayments;
-            }
+        // Calculate monthly payment using mortgage formula
+        const rateNum = parseFloat(data.interestRate) || 0;
+        const termYears = parseInt(data.loanTerm) || 30;
+        const monthlyRate = rateNum / 100 / 12;
+        const numPayments = termYears * 12;
+        let monthlyPayment = 0;
+        if (loanAmount > 0 && rateNum > 0) {
+          if (data.interestOnlyOption) {
+            monthlyPayment = loanAmount * monthlyRate;
+          } else {
+            monthlyPayment =
+              (loanAmount *
+                monthlyRate *
+                Math.pow(1 + monthlyRate, numPayments)) /
+              (Math.pow(1 + monthlyRate, numPayments) - 1);
+          }
+        } else if (loanAmount > 0) {
+          monthlyPayment = loanAmount / numPayments;
+        }
 
-            // Calculate monthly property taxes
-            const propertyTaxesNum = parseFloat(data.propertyTaxes) || 0;
-            const monthlyPropertyTaxes =
-              data.propertyTaxesType === "%"
-                ? ((propertyTaxesNum / 100) * costNum) / 12
-                : propertyTaxesNum / 12;
+        // Calculate monthly property taxes
+        const propertyTaxesNum = parseFloat(data.propertyTaxes) || 0;
+        const monthlyPropertyTaxes =
+          data.propertyTaxesType === "%"
+            ? ((propertyTaxesNum / 100) * costNum) / 12
+            : propertyTaxesNum / 12;
 
-            // Calculate monthly homeowners insurance
-            const insuranceNum = parseFloat(data.homeownersInsurance) || 0;
-            const monthlyInsurance =
-              data.homeownersInsuranceType === "%"
-                ? ((insuranceNum / 100) * costNum) / 12
-                : insuranceNum / 12;
+        // Calculate monthly homeowners insurance
+        const insuranceNum = parseFloat(data.homeownersInsurance) || 0;
+        const monthlyInsurance =
+          data.homeownersInsuranceType === "%"
+            ? ((insuranceNum / 100) * costNum) / 12
+            : insuranceNum / 12;
 
-            const totalMonthlyPayment =
-              monthlyPayment + monthlyPropertyTaxes + monthlyInsurance;
+        const totalMonthlyPayment =
+          monthlyPayment + monthlyPropertyTaxes + monthlyInsurance;
 
-            return (
-              <>
+        return (
+          <div className="bg-bg rounded-lg p-4 space-y-3">
+            <button
+              type="button"
+              onClick={() =>
+                setPurchaseSummaryExpanded(!purchaseSummaryExpanded)
+              }
+              className="flex items-center justify-between w-full text-left"
+            >
+              <h4 className="font-semibold text-text">Purchase Summary</h4>
+              <svg
+                className={`w-5 h-5 text-text-muted transition-transform duration-200 ${
+                  purchaseSummaryExpanded ? "rotate-180" : ""
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {/* Monthly Payment - Always Visible */}
+            <div>
+              <AnalysisItem
+                label="Monthly Payment"
+                value={
+                  totalMonthlyPayment > 0
+                    ? `$${totalMonthlyPayment.toLocaleString("en-US", {
+                        maximumFractionDigits: 2,
+                      })}`
+                    : "-"
+                }
+                highlight
+                noBorder
+              />
+              <SegmentedProgressBar
+                segments={[
+                  {
+                    value: monthlyPayment,
+                    color: "bg-blue-500",
+                    label: "Loan",
+                  },
+                  {
+                    value: monthlyPropertyTaxes,
+                    color: "bg-emerald-500",
+                    label: "Tax",
+                  },
+                  {
+                    value: monthlyInsurance,
+                    color: "bg-amber-500",
+                    label: "Insurance",
+                  },
+                ]}
+                total={totalMonthlyPayment}
+              />
+            </div>
+
+            {/* Collapsible Details */}
+            {purchaseSummaryExpanded && (
+              <div className="space-y-2">
                 <AnalysisItem
                   label="Purchase Price"
                   value={
@@ -237,55 +301,6 @@ export function BuyBlock({ data, onChange }: BuyBlockProps) {
                       : "-"
                   }
                 />
-                <AnalysisItem
-                  label="Monthly Payment"
-                  value={
-                    totalMonthlyPayment > 0
-                      ? `$${totalMonthlyPayment.toLocaleString("en-US", {
-                          maximumFractionDigits: 2,
-                        })}`
-                      : "-"
-                  }
-                  highlight
-                />
-                {totalMonthlyPayment > 0 && (
-                  <div className="py-2">
-                    <div className="flex h-3 w-full rounded-full overflow-hidden bg-gray-200">
-                      <div
-                        className="bg-blue-500 h-full"
-                        style={{
-                          width: `${Math.max(1, (monthlyPayment / totalMonthlyPayment) * 100)}%`,
-                        }}
-                        title={`Loan: $${monthlyPayment.toFixed(0)}`}
-                      />
-                      <div
-                        className="bg-emerald-500 h-full"
-                        style={{
-                          width: `${Math.max(1, (monthlyPropertyTaxes / totalMonthlyPayment) * 100)}%`,
-                        }}
-                        title={`Tax: $${monthlyPropertyTaxes.toFixed(0)}`}
-                      />
-                      <div
-                        className="bg-amber-500 h-full"
-                        style={{
-                          width: `${Math.max(1, (monthlyInsurance / totalMonthlyPayment) * 100)}%`,
-                        }}
-                        title={`Insurance: $${monthlyInsurance.toFixed(0)}`}
-                      />
-                    </div>
-                    <div className="flex justify-between text-xs text-text-muted mt-1">
-                      <span className="text-blue-600">
-                        Loan: ${monthlyPayment.toFixed(0)}
-                      </span>
-                      <span className="text-emerald-600">
-                        Tax: ${monthlyPropertyTaxes.toFixed(0)}
-                      </span>
-                      <span className="text-amber-600">
-                        Insurance: ${monthlyInsurance.toFixed(0)}
-                      </span>
-                    </div>
-                  </div>
-                )}
                 <AnalysisItem
                   label="Down Payment"
                   value={
@@ -320,11 +335,11 @@ export function BuyBlock({ data, onChange }: BuyBlockProps) {
                   }
                   highlight
                 />
-              </>
-            );
-          })()}
-        </div>
-      </CollapsibleSection>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <CollapsibleSection
         title="Project Planning"
