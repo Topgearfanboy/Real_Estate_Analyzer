@@ -22,7 +22,7 @@ interface BuyBlockProps {
 
 export function BuyBlock({ data, onChange }: BuyBlockProps) {
   const [projectPlanningExpanded, setProjectPlanningExpanded] = useState(false);
-  const [purchaseSummaryExpanded, setPurchaseSummaryExpanded] = useState(true);
+  const [purchaseSummaryExpanded, setPurchaseSummaryExpanded] = useState(false);
 
   const updateField = <K extends keyof BuyBlockData>(
     field: K,

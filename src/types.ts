@@ -1,4 +1,4 @@
-export type BlockType = "buy" | "renovate" | "refinance";
+export type BlockType = "buy" | "renovate" | "refinance" | "rent" | "sell";
 
 export interface LoanAnalysis {
   incomeNeeded: string;
@@ -58,8 +58,32 @@ export interface RefinanceBlockData {
   remainingEquityPercent: string;
 }
 
+export interface RentBlockData {
+  monthlyRent: string;
+  timeRentedMonths: string;
+  timeRentedYears: string;
+  vacancy: string;
+  vacancyType: "$" | "%";
+  management: string;
+  managementType: "$" | "%";
+  maintenance: string;
+  maintenanceType: "$" | "%";
+}
+
+export interface SellBlockData {
+  sellPrice: string;
+  timeToSellMonths: string;
+  closingCosts: string;
+  closingCostsType: "$" | "%";
+}
+
 export interface Block {
   id: string;
   type: BlockType;
-  data: BuyBlockData | RenovateBlockData | RefinanceBlockData;
+  data:
+    | BuyBlockData
+    | RenovateBlockData
+    | RefinanceBlockData
+    | RentBlockData
+    | SellBlockData;
 }

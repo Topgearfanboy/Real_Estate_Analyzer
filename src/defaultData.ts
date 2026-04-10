@@ -2,6 +2,8 @@ import type {
   BuyBlockData,
   RenovateBlockData,
   RefinanceBlockData,
+  RentBlockData,
+  SellBlockData,
   Block,
   BlockType,
 } from "./types";
@@ -53,10 +55,34 @@ export const defaultRefinanceData = (): RefinanceBlockData => ({
   remainingEquityPercent: "",
 });
 
+export const defaultRentData = (): RentBlockData => ({
+  monthlyRent: "2500",
+  timeRentedMonths: "0",
+  timeRentedYears: "1",
+  vacancy: "5",
+  vacancyType: "%",
+  management: "8",
+  managementType: "%",
+  maintenance: "100",
+  maintenanceType: "$",
+});
+
+export const defaultSellData = (): SellBlockData => ({
+  sellPrice: "350000",
+  timeToSellMonths: "3",
+  closingCosts: "6",
+  closingCostsType: "%",
+});
+
 export const createBlock = (type: BlockType): Block => {
   const id = `${type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  let data: BuyBlockData | RenovateBlockData | RefinanceBlockData;
+  let data:
+    | BuyBlockData
+    | RenovateBlockData
+    | RefinanceBlockData
+    | RentBlockData
+    | SellBlockData;
   switch (type) {
     case "buy":
       data = defaultBuyData();
@@ -66,6 +92,12 @@ export const createBlock = (type: BlockType): Block => {
       break;
     case "refinance":
       data = defaultRefinanceData();
+      break;
+    case "rent":
+      data = defaultRentData();
+      break;
+    case "sell":
+      data = defaultSellData();
       break;
     default:
       data = defaultBuyData();
