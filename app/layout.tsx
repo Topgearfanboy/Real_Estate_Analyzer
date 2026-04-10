@@ -1,19 +1,22 @@
-import type { Metadata } from 'next'
-import './globals.css'
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Real Estate Analyzer',
-  description: 'Create, organize, and manage your property investment blocks',
-}
+  title: "Real Estate Analyzer",
+  description: "Create, organize, and manage your property investment blocks",
+  icons: {
+    icon: "/favicon.svg",
+  },
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
       <body className="min-h-screen bg-bg">{children}</body>
     </html>
-  )
+  );
 }
