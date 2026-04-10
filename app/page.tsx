@@ -35,10 +35,10 @@ const blockTypeColors: Record<BlockType, string> = {
 
 export default function Home() {
   const [blocks, setBlocks] = useState<Block[]>([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const hasBuyBlock = blocks.some((b) => b.type === "buy");
   const hasSellBlock = blocks.some((b) => b.type === "sell");
-  const buyBlockIndex = blocks.findIndex((b) => b.type === "buy");
   const sellBlockIndex = blocks.findIndex((b) => b.type === "sell");
 
   const addBlock = (type: BlockType) => {
@@ -49,11 +49,9 @@ export default function Home() {
 
     if (type === "buy") {
       setBlocks([newBlock, ...blocks]);
-    } else if (type === "sell") {
-      setBlocks([...blocks, newBlock]);
     } else {
-      let insertIndex = 0;
-      if (hasBuyBlock) insertIndex = buyBlockIndex + 1;
+      // Other blocks go at the end (before sell if exists)
+      let insertIndex = blocks.length;
       if (hasSellBlock) insertIndex = sellBlockIndex;
       const newBlocks = [...blocks];
       newBlocks.splice(insertIndex, 0, newBlock);
@@ -161,41 +159,83 @@ export default function Home() {
               Create, organize, and manage your property investment
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="relative">
             <button
-              onClick={() => addBlock("buy")}
-              disabled={hasBuyBlock}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title={hasBuyBlock ? "Only one Buy block allowed" : ""}
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium transition-colors flex items-center gap-2 shadow-md"
+              title="Add block"
             >
-              + Buy Block
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span>Add Block</span>
             </button>
-            <button
-              onClick={() => addBlock("renovate")}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium transition-colors"
-            >
-              + Renovate Block
-            </button>
-            <button
-              onClick={() => addBlock("refinance")}
-              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 font-medium transition-colors"
-            >
-              + Refinance Block
-            </button>
-            <button
-              onClick={() => addBlock("rent")}
-              className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium transition-colors"
-            >
-              + Rent Block
-            </button>
-            <button
-              onClick={() => addBlock("sell")}
-              disabled={hasSellBlock}
-              className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title={hasSellBlock ? "Only one Sell block allowed" : ""}
-            >
-              + Sell Block
-            </button>
+            {dropdownOpen && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-border py-2 z-50">
+                <button
+                  onClick={() => {
+                    addBlock("buy");
+                    setDropdownOpen(false);
+                  }}
+                  disabled={hasBuyBlock}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  Buy Block
+                </button>
+                <button
+                  onClick={() => {
+                    addBlock("renovate");
+                    setDropdownOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  Renovate Block
+                </button>
+                <button
+                  onClick={() => {
+                    addBlock("refinance");
+                    setDropdownOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                  Refinance Block
+                </button>
+                <button
+                  onClick={() => {
+                    addBlock("rent");
+                    setDropdownOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                  Rent Block
+                </button>
+                <button
+                  onClick={() => {
+                    addBlock("sell");
+                    setDropdownOpen(false);
+                  }}
+                  disabled={hasSellBlock}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="w-2 h-2 rounded-full bg-teal-500"></span>
+                  Sell Block
+                </button>
+              </div>
+            )}
           </div>
         </header>
 

@@ -49,6 +49,12 @@ describe("BuyBlock", () => {
   it("calculates and displays purchase summary details", () => {
     render(<BuyBlock data={testData} onChange={mockOnChange} />);
 
+    // Expand the purchase summary section first
+    const toggleButton = screen.getByRole("button", {
+      name: /purchase summary/i,
+    });
+    fireEvent.click(toggleButton);
+
     expect(screen.getAllByText(/purchase price/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/loan amount/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/down payment/i).length).toBeGreaterThan(0);
@@ -62,9 +68,13 @@ describe("BuyBlock", () => {
     const toggleButton = screen.getByRole("button", {
       name: /purchase summary/i,
     });
-    fireEvent.click(toggleButton);
 
-    // Details should be hidden after toggle
+    // Section is collapsed by default, click to expand
+    fireEvent.click(toggleButton);
+    expect(screen.getByText(/purchase price/i)).toBeTruthy();
+
+    // Click again to collapse
+    fireEvent.click(toggleButton);
     expect(screen.queryByText(/purchase price/i)).toBeFalsy();
   });
 
@@ -111,6 +121,12 @@ describe("BuyBlock", () => {
   it("calculates loan amount correctly", () => {
     render(<BuyBlock data={testData} onChange={mockOnChange} />);
 
+    // Expand the purchase summary section first
+    const toggleButton = screen.getByRole("button", {
+      name: /purchase summary/i,
+    });
+    fireEvent.click(toggleButton);
+
     // With $350,000 cost and 15% down, loan amount should be $297,500
     expect(screen.getByText(/loan amount/i)).toBeTruthy();
   });
@@ -118,7 +134,7 @@ describe("BuyBlock", () => {
   it("displays segmented progress bar for monthly payment breakdown", () => {
     render(<BuyBlock data={testData} onChange={mockOnChange} />);
 
-    // Progress bar should be visible with loan, tax, insurance labels
+    // Progress bar labels should be visible (monthly payment section is always visible)
     expect(screen.getByText(/loan:/i)).toBeTruthy();
     expect(screen.getByText(/tax:/i)).toBeTruthy();
     expect(screen.getByText(/insurance:/i)).toBeTruthy();

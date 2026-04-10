@@ -56,6 +56,19 @@ export interface RefinanceBlockData {
   estimatedValue: string;
   remainingEquityAmount: string;
   remainingEquityPercent: string;
+  // BuyBlock fields
+  cost: string;
+  costType: "$" | "%";
+  interestRate: string;
+  closingCosts: string;
+  closingCostsType: "$" | "%";
+  propertyTaxes: string;
+  propertyTaxesType: "$" | "%";
+  homeownersInsurance: string;
+  homeownersInsuranceType: "$" | "%";
+  loanTerm: string;
+  customLoanTerm: string;
+  interestOnlyOption: boolean;
 }
 
 export interface RentBlockData {

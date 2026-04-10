@@ -14,7 +14,7 @@ export function CollapsibleSection({
   children,
 }: CollapsibleSectionProps) {
   return (
-    <div className="bg-bg rounded-lg p-4 space-y-3">
+    <div className="bg-bg rounded-lg p-4 w-full">
       <button
         type="button"
         onClick={onToggle}
@@ -22,7 +22,7 @@ export function CollapsibleSection({
       >
         <h4 className="font-semibold text-text">{title}</h4>
         <svg
-          className={`w-5 h-5 text-text-muted transition-transform duration-200 ${
+          className={`w-5 h-5 text-text-muted transition-transform duration-200 shrink-0 ${
             expanded ? "rotate-180" : ""
           }`}
           fill="none"
@@ -37,7 +37,7 @@ export function CollapsibleSection({
           />
         </svg>
       </button>
-      {expanded && children}
+      {expanded && <div className="w-full mt-3">{children}</div>}
     </div>
   );
 }

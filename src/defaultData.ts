@@ -53,6 +53,19 @@ export const defaultRefinanceData = (): RefinanceBlockData => ({
   estimatedValue: "",
   remainingEquityAmount: "",
   remainingEquityPercent: "",
+  // BuyBlock fields
+  cost: "",
+  costType: "$",
+  interestRate: "",
+  closingCosts: "",
+  closingCostsType: "%",
+  propertyTaxes: "",
+  propertyTaxesType: "%",
+  homeownersInsurance: "",
+  homeownersInsuranceType: "$",
+  loanTerm: "30",
+  customLoanTerm: "",
+  interestOnlyOption: false,
 });
 
 export const defaultRentData = (): RentBlockData => ({

@@ -18,7 +18,7 @@ export function CurrencyOrPercentageField({
   width = "w-24",
 }: CurrencyOrPercentageFieldProps) {
   return (
-    <div className="flex border border-border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary">
+    <div className="flex border border-border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary justify-between">
       {type === "$" ? (
         <div className={width}>
           <CurrencyField
@@ -38,7 +38,7 @@ export function CurrencyOrPercentageField({
           />
         </div>
       )}
-      <div className="border-l border-border">
+      <div className="border-l border-border pr-3">
         <CurrencyTypeSelect
           value={type}
           onChange={onTypeChange}

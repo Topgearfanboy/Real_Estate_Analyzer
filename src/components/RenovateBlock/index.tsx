@@ -1,7 +1,9 @@
+import { useState } from "react";
 import type { RenovateBlockData } from "../../types";
 import { TextField } from "../uiComponents/fieldTypes/TextField";
 import { CurrencyField } from "../uiComponents/fieldTypes/CurrencyField";
 import { AnalysisItem } from "../uiComponents/AnalysisItem";
+import { CollapsibleSection } from "../uiComponents/CollapsibleSection";
 import {
   addItem,
   removeItem,
@@ -20,6 +22,10 @@ interface RenovateBlockProps {
 }
 
 export function RenovateBlock({ data, onChange }: RenovateBlockProps) {
+  const [monthlyCostExpanded, setMonthlyCostExpanded] = useState(false);
+  const [renovationSummaryExpanded, setRenovationSummaryExpanded] =
+    useState(false);
+
   return (
     <div className="space-y-4">
       <div>
@@ -46,12 +52,21 @@ export function RenovateBlock({ data, onChange }: RenovateBlockProps) {
                 placeholder="Item name"
                 className="flex-1 px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              <CurrencyField
+              <input
+                type="text"
+                inputMode="numeric"
                 value={item.cost}
-                onChange={(value) =>
-                  updateItem(data, onChange, index, "cost", value)
+                onChange={(e) =>
+                  updateItem(
+                    data,
+                    onChange,
+                    index,
+                    "cost",
+                    e.target.value.replace(/[^0-9.]/g, ""),
+                  )
                 }
-                fullWidth={false}
+                placeholder="$0"
+                className="w-20 px-2 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
               />
               <button
                 onClick={() => removeItem(data, onChange, index)}
@@ -126,9 +141,11 @@ export function RenovateBlock({ data, onChange }: RenovateBlockProps) {
         </div>
       </div>
 
-      <div className="bg-bg rounded-lg p-4 space-y-3">
-        <h4 className="font-semibold text-text">Monthly Cost To Own</h4>
-
+      <CollapsibleSection
+        title="Monthly Cost To Own"
+        expanded={monthlyCostExpanded}
+        onToggle={() => setMonthlyCostExpanded(!monthlyCostExpanded)}
+      >
         <div className="bg-white rounded-lg p-3 space-y-3">
           <h5 className="text-sm font-medium text-text-muted">Utilities</h5>
           <div className="grid grid-cols-3 gap-3">
@@ -172,10 +189,15 @@ export function RenovateBlock({ data, onChange }: RenovateBlockProps) {
           }
           placeholder="e.g., Deferred 6 months"
         />
-      </div>
+      </CollapsibleSection>
 
-      <div className="bg-bg rounded-lg p-4 space-y-3">
-        <h4 className="font-semibold text-text">Renovation Summary</h4>
+      <CollapsibleSection
+        title="Renovation Summary"
+        expanded={renovationSummaryExpanded}
+        onToggle={() =>
+          setRenovationSummaryExpanded(!renovationSummaryExpanded)
+        }
+      >
         <div className="space-y-2">
           {(() => {
             const totalCost = calculateTotalCost(data.items);
@@ -207,7 +229,7 @@ export function RenovateBlock({ data, onChange }: RenovateBlockProps) {
             );
           })()}
         </div>
-      </div>
+      </CollapsibleSection>
     </div>
   );
 }
