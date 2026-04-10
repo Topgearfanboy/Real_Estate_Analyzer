@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import type {
   Block,
@@ -7,14 +9,13 @@ import type {
   RefinanceBlockData,
   RentBlockData,
   SellBlockData,
-} from "./types";
-import { BuyBlock } from "./components/BuyBlock";
-import { RenovateBlock } from "./components/RenovateBlock";
-import { RefinanceBlock } from "./components/RefinanceBlock";
-import { RentBlock } from "./components/RentBlock";
-import { SellBlock } from "./components/SellBlock";
-import { createBlock } from "./defaultData";
-import "./App.css";
+} from "@/types";
+import { BuyBlock } from "@/components/BuyBlock";
+import { RenovateBlock } from "@/components/RenovateBlock";
+import { RefinanceBlock } from "@/components/RefinanceBlock";
+import { RentBlock } from "@/components/RentBlock";
+import { SellBlock } from "@/components/SellBlock";
+import { createBlock } from "@/defaultData";
 
 const blockTypeLabels: Record<BlockType, string> = {
   buy: "Buy",
@@ -32,31 +33,25 @@ const blockTypeColors: Record<BlockType, string> = {
   sell: "border-l-teal-500",
 };
 
-function App() {
+export default function Home() {
   const [blocks, setBlocks] = useState<Block[]>([]);
 
-  // Check if buy or sell blocks exist
   const hasBuyBlock = blocks.some((b) => b.type === "buy");
   const hasSellBlock = blocks.some((b) => b.type === "sell");
-
-  // Find indices for positioning constraints
   const buyBlockIndex = blocks.findIndex((b) => b.type === "buy");
   const sellBlockIndex = blocks.findIndex((b) => b.type === "sell");
 
   const addBlock = (type: BlockType) => {
-    if (type === "buy" && hasBuyBlock) return; // Only 1 buy block allowed
-    if (type === "sell" && hasSellBlock) return; // Only 1 sell block allowed
+    if (type === "buy" && hasBuyBlock) return;
+    if (type === "sell" && hasSellBlock) return;
 
     const newBlock = createBlock(type);
 
     if (type === "buy") {
-      // Buy block must be first
       setBlocks([newBlock, ...blocks]);
     } else if (type === "sell") {
-      // Sell block must be last
       setBlocks([...blocks, newBlock]);
     } else {
-      // Other blocks go in the middle (after buy if exists, before sell if exists)
       let insertIndex = 0;
       if (hasBuyBlock) insertIndex = buyBlockIndex + 1;
       if (hasSellBlock) insertIndex = sellBlockIndex;
@@ -72,17 +67,11 @@ function App() {
 
   const moveBlock = (index: number, direction: "up" | "down") => {
     const block = blocks[index];
-
-    // Buy block cannot move (must stay first)
     if (block.type === "buy") return;
-
-    // Sell block cannot move (must stay last)
     if (block.type === "sell") return;
 
     if (direction === "up" && index > 0) {
-      // Cannot move before buy block
       if (blocks[index - 1].type === "buy") return;
-
       const newBlocks = [...blocks];
       [newBlocks[index - 1], newBlocks[index]] = [
         newBlocks[index],
@@ -90,9 +79,7 @@ function App() {
       ];
       setBlocks(newBlocks);
     } else if (direction === "down" && index < blocks.length - 1) {
-      // Cannot move after sell block
       if (blocks[index + 1].type === "sell") return;
-
       const newBlocks = [...blocks];
       [newBlocks[index], newBlocks[index + 1]] = [
         newBlocks[index + 1],
@@ -107,15 +94,71 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-bg">
+    <>
+      <nav className="bg-white border-b border-border shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <svg
+              className="w-8 h-8 text-primary"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+              />
+            </svg>
+            <span className="text-xl font-bold text-text">
+              Real Estate Analyzer
+            </span>
+          </div>
+          <div className="flex items-center gap-6">
+            <button className="text-text-muted hover:text-text transition-colors">
+              Dashboard
+            </button>
+            <button className="text-text-muted hover:text-text transition-colors">
+              Properties
+            </button>
+            <button className="text-text-muted hover:text-text transition-colors">
+              Reports
+            </button>
+            <div className="w-px h-5 bg-border"></div>
+            <button className="p-2 text-text-muted hover:text-text hover:bg-gray-100 rounded-lg transition-colors">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </nav>
+
       <div className="p-6">
         <header className="mb-8 flex items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-text mb-2">
-              Real Estate Analyzer
+              Property Manager
             </h1>
             <p className="text-text-muted">
-              Create, organize, and manage your property investment blocks
+              Create, organize, and manage your property investment
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -291,8 +334,6 @@ function App() {
           ))}
         </div>
       </div>
-    </div>
+    </>
   );
 }
-
-export default App;
