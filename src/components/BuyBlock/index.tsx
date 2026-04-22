@@ -125,6 +125,12 @@ export function BuyBlock({ data, onChange }: BuyBlockProps) {
           />
         </div>
 
+        <CurrencyField
+          label="HOA (Annual)"
+          value={data.annualHoa}
+          onChange={(value) => updateField("annualHoa", value)}
+        />
+
         <div className="max-w-[200px] w-full">
           <label className="block text-sm font-medium text-text-muted mb-1">
             Insurance (Annual)
@@ -210,8 +216,13 @@ export function BuyBlock({ data, onChange }: BuyBlockProps) {
             ? ((insuranceNum / 100) * costNum) / 12
             : insuranceNum / 12;
 
+        // Calculate monthly HOA
+        const annualHoaNum =
+          parseFloat(data.annualHoa.replace(/[^0-9.]/g, "")) || 0;
+        const monthlyHoa = annualHoaNum / 12;
+
         const totalMonthlyPayment =
-          monthlyPayment + monthlyPropertyTaxes + monthlyInsurance;
+          monthlyPayment + monthlyPropertyTaxes + monthlyInsurance + monthlyHoa;
 
         return (
           <div className="bg-bg rounded-lg p-4 space-y-3">
@@ -270,6 +281,11 @@ export function BuyBlock({ data, onChange }: BuyBlockProps) {
                     value: monthlyInsurance,
                     color: "bg-amber-500",
                     label: "Insurance",
+                  },
+                  {
+                    value: monthlyHoa,
+                    color: "bg-purple-500",
+                    label: "HOA",
                   },
                 ]}
                 total={totalMonthlyPayment}

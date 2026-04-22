@@ -17,6 +17,7 @@ export const defaultBuyData = (): BuyBlockData => ({
   closingCostsType: "%",
   propertyTaxes: "1",
   propertyTaxesType: "%",
+  annualHoa: "0",
   homeownersInsurance: "740",
   homeownersInsuranceType: "$",
   loanTerm: "30",
@@ -42,9 +43,8 @@ export const defaultRenovateData = (): RenovateBlockData => ({
     utilities: {
       county: "",
       electricity: "",
-      networking: "",
     },
-    deferredInterestPrincipalOption: "",
+    deferInterestPayments: false,
   },
 });
 

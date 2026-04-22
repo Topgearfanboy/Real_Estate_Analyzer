@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { RenovateBlockData } from "../../types";
-import { TextField } from "../uiComponents/fieldTypes/TextField";
 import { CurrencyField } from "../uiComponents/fieldTypes/CurrencyField";
 import { AnalysisItem } from "../uiComponents/AnalysisItem";
 import { CollapsibleSection } from "../uiComponents/CollapsibleSection";
@@ -148,7 +147,7 @@ export function RenovateBlock({ data, onChange }: RenovateBlockProps) {
       >
         <div className="bg-white rounded-lg p-3 space-y-3">
           <h5 className="text-sm font-medium text-text-muted">Utilities</h5>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <CurrencyField
               label="County"
               value={data.monthlyCostToOwn.utilities.county}
@@ -165,30 +164,28 @@ export function RenovateBlock({ data, onChange }: RenovateBlockProps) {
               }
               size="sm"
             />
-            <CurrencyField
-              label="Networking?"
-              value={data.monthlyCostToOwn.utilities.networking}
-              onChange={(value) =>
-                updateUtilities(data, onChange, "networking", value)
-              }
-              size="sm"
-            />
           </div>
         </div>
 
-        <TextField
-          label="Deferred Interest/Principal Option"
-          value={data.monthlyCostToOwn.deferredInterestPrincipalOption}
-          onChange={(value) =>
-            updateMonthlyCost(
-              data,
-              onChange,
-              "deferredInterestPrincipalOption",
-              value,
-            )
-          }
-          placeholder="e.g., Deferred 6 months"
-        />
+        <div className="flex items-center gap-2 mt-4">
+          <input
+            type="checkbox"
+            id="deferInterestPayments"
+            checked={data.monthlyCostToOwn.deferInterestPayments}
+            onChange={(e) =>
+              updateMonthlyCost(
+                data,
+                onChange,
+                "deferInterestPayments",
+                e.target.checked,
+              )
+            }
+            className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
+          />
+          <label htmlFor="deferInterestPayments" className="text-sm text-text">
+            Defer Interest Payments
+          </label>
+        </div>
       </CollapsibleSection>
 
       <CollapsibleSection

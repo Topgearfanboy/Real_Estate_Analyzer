@@ -15,7 +15,8 @@
     "@tailwindcss/vite": "^4.2.2",
     "next": "^16.2.3",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

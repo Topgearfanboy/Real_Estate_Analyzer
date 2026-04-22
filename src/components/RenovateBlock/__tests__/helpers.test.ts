@@ -11,13 +11,13 @@ import {
 const mockOnChange = jest.fn();
 
 const createMockData = (
-  overrides: Partial<RenovateBlockData> = {}
+  overrides: Partial<RenovateBlockData> = {},
 ): RenovateBlockData => ({
   items: [],
   timeToRenovate: { days: "", months: "", years: "" },
   monthlyCostToOwn: {
-    utilities: { county: "", electricity: "", networking: "" },
-    deferredInterestPrincipalOption: "",
+    utilities: { county: "", electricity: "" },
+    deferInterestPayments: false,
   },
   ...overrides,
 });
@@ -73,9 +73,7 @@ describe("RenovateBlock Helpers", () => {
 
   describe("updateItem", () => {
     it("updates the specified field of an item", () => {
-      const items: RenovationItem[] = [
-        { item: "Kitchen", cost: "5000" },
-      ];
+      const items: RenovationItem[] = [{ item: "Kitchen", cost: "5000" }];
       const data = createMockData({ items });
       updateItem(data, mockOnChange, 0, "cost", "6000");
 

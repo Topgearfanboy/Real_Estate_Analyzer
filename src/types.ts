@@ -11,12 +11,11 @@ export interface LoanAnalysis {
 export interface Utilities {
   county: string;
   electricity: string;
-  networking: string;
 }
 
 export interface MonthlyCostToOwn {
   utilities: Utilities;
-  deferredInterestPrincipalOption: string;
+  deferInterestPayments: boolean;
 }
 
 export interface BuyBlockData {
@@ -28,6 +27,7 @@ export interface BuyBlockData {
   closingCostsType: "$" | "%";
   propertyTaxes: string;
   propertyTaxesType: "$" | "%";
+  annualHoa: string;
   homeownersInsurance: string;
   homeownersInsuranceType: "$" | "%";
   loanTerm: string;
