@@ -1,0 +1,4 @@
+- when cashout refinancing is selected. the difference between the financed amount and the current equity should be added to the cash on hand
+- properties should be saved to localStorage when created and we need to make a page that allows you to select local properties
+- there needs to be a way to export the generated graph data to a csv/xlsx/json file
+- there needs to be a general analysis section that shows key metrics like roi, cash on cash return, time to pay off loan, etc.

@@ -22,8 +22,6 @@ interface RefinanceBlockProps {
 
 export function RefinanceBlock({ data, onChange }: RefinanceBlockProps) {
   const [remainingEquityExpanded, setRemainingEquityExpanded] = useState(false);
-  const [refinanceSummaryExpanded, setRefinanceSummaryExpanded] =
-    useState(false);
 
   // Use data.cost directly for display
   const displayPercentage = data.cost;
@@ -190,7 +188,7 @@ export function RefinanceBlock({ data, onChange }: RefinanceBlockProps) {
         </label>
       </div>
 
-      {/* Refinance Summary - with always-visible monthly payment */}
+      {/* Monthly Payment */}
       {(() => {
         // Parse values
         const estimatedValueNum =
@@ -199,11 +197,6 @@ export function RefinanceBlock({ data, onChange }: RefinanceBlockProps) {
           parseFloat(displayPercentage.replace(/[^0-9.]/g, "")) || 0;
         const loanAmount =
           data.costType === "%" ? (costNum / 100) * estimatedValueNum : costNum;
-        const closingCostsNum =
-          data.closingCostsType === "%"
-            ? (parseFloat(data.closingCosts) / 100) * loanAmount
-            : parseFloat(data.closingCosts) || 0;
-        const totalCashNeeded = closingCostsNum;
 
         // Calculate monthly payment using the same formula as BuyBlock
         const interestRateNum = parseFloat(data.interestRate) || 0;
@@ -230,14 +223,14 @@ export function RefinanceBlock({ data, onChange }: RefinanceBlockProps) {
         const propertyTaxesNum = parseFloat(data.propertyTaxes) || 0;
         const monthlyPropertyTaxes =
           data.propertyTaxesType === "%"
-            ? ((propertyTaxesNum / 100) * costNum) / 12
+            ? ((propertyTaxesNum / 100) * estimatedValueNum) / 12
             : propertyTaxesNum / 12;
 
         // Calculate monthly homeowners insurance
         const insuranceNum = parseFloat(data.homeownersInsurance) || 0;
         const monthlyInsurance =
           data.homeownersInsuranceType === "%"
-            ? ((insuranceNum / 100) * costNum) / 12
+            ? ((insuranceNum / 100) * estimatedValueNum) / 12
             : insuranceNum / 12;
 
         const totalMonthlyPayment =
@@ -245,117 +238,38 @@ export function RefinanceBlock({ data, onChange }: RefinanceBlockProps) {
 
         return (
           <div className="bg-bg rounded-lg p-4 space-y-3">
-            <button
-              type="button"
-              onClick={() =>
-                setRefinanceSummaryExpanded(!refinanceSummaryExpanded)
+            <AnalysisItem
+              label="Monthly Payment"
+              value={
+                totalMonthlyPayment > 0
+                  ? `$${totalMonthlyPayment.toLocaleString("en-US", {
+                      maximumFractionDigits: 2,
+                    })}`
+                  : "-"
               }
-              className="flex items-center justify-between w-full text-left"
-            >
-              <h4 className="font-semibold text-text">Refinance Summary</h4>
-              <svg
-                className={`w-5 h-5 text-text-muted transition-transform duration-200 ${
-                  refinanceSummaryExpanded ? "rotate-180" : ""
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-
-            {/* Monthly Payment - Always Visible */}
-            <div>
-              <AnalysisItem
-                label="Monthly Payment"
-                value={
-                  totalMonthlyPayment > 0
-                    ? `$${totalMonthlyPayment.toLocaleString("en-US", {
-                        maximumFractionDigits: 2,
-                      })}`
-                    : "-"
-                }
-                highlight
-                noBorder
-              />
-              <SegmentedProgressBar
-                segments={[
-                  {
-                    value: monthlyPayment,
-                    color: "bg-blue-500",
-                    label: "Loan",
-                  },
-                  {
-                    value: monthlyPropertyTaxes,
-                    color: "bg-emerald-500",
-                    label: "Tax",
-                  },
-                  {
-                    value: monthlyInsurance,
-                    color: "bg-amber-500",
-                    label: "Insurance",
-                  },
-                ]}
-                total={totalMonthlyPayment}
-              />
-            </div>
-
-            {/* Collapsible Details */}
-            {refinanceSummaryExpanded && (
-              <div className="space-y-2 pt-2 border-t border-border">
-                <AnalysisItem
-                  label="Purchase Price"
-                  value={
-                    costNum > 0
-                      ? `$${costNum.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`
-                      : "-"
-                  }
-                />
-                <AnalysisItem
-                  label="Loan Amount"
-                  value={
-                    loanAmount > 0
-                      ? `$${loanAmount.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`
-                      : "-"
-                  }
-                />
-                <AnalysisItem
-                  label="Closing Costs"
-                  value={
-                    closingCostsNum > 0
-                      ? `$${closingCostsNum.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`
-                      : "-"
-                  }
-                />
-                <AnalysisItem
-                  label="Total Cash Needed"
-                  value={
-                    totalCashNeeded > 0
-                      ? `$${totalCashNeeded.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`
-                      : "-"
-                  }
-                  highlight
-                />
-              </div>
-            )}
+              highlight
+              noBorder
+            />
+            <SegmentedProgressBar
+              segments={[
+                {
+                  value: monthlyPayment,
+                  color: "bg-blue-500",
+                  label: "Loan",
+                },
+                {
+                  value: monthlyPropertyTaxes,
+                  color: "bg-emerald-500",
+                  label: "Tax",
+                },
+                {
+                  value: monthlyInsurance,
+                  color: "bg-amber-500",
+                  label: "Insurance",
+                },
+              ]}
+              total={totalMonthlyPayment}
+            />
           </div>
         );
       })()}
