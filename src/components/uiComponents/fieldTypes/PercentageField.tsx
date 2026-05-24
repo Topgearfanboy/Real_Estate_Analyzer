@@ -9,6 +9,7 @@ interface PercentageFieldProps {
   fullWidth?: boolean;
   decimals?: number;
   variant?: "default" | "combined";
+  "data-testid"?: string;
 }
 
 function formatPercentage(num: number, decimals: number): string {
@@ -24,6 +25,7 @@ export function PercentageField({
   fullWidth = true,
   decimals = 2,
   variant = "default",
+  "data-testid": dataTestId,
 }: PercentageFieldProps) {
   const isCombined = variant === "combined";
   const [inputValue, setInputValue] = useState(value);
@@ -80,6 +82,7 @@ export function PercentageField({
         onFocus={handleFocus}
         onBlur={handleBlur}
         placeholder={placeholder}
+        data-testid={dataTestId}
         className={`${fullWidth ? "w-full" : ""} ${isCombined ? "pl-3 pr-1" : "px-3"} ${inputClasses} focus:outline-none ${
           isCombined
             ? "border-0 h-full"

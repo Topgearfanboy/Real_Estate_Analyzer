@@ -17,6 +17,7 @@ interface GraphDataPoint {
   cashOnHand: number;
   equity: number;
   remainingLoanBalance: number;
+  monthlyNet: number;
 }
 
 interface LineGraphProps {
@@ -24,6 +25,55 @@ interface LineGraphProps {
   selectedYears?: number;
   onYearsChange?: (years: number) => void;
 }
+
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+  data,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+  label?: string;
+  data?: GraphDataPoint[];
+}) => {
+  if (active && payload && payload.length && label && data) {
+    // Calculate years and months since beginning (2024-01)
+    const startDate = new Date(2024, 0, 1);
+    const currentDate = new Date(label + "-01");
+    const monthsDiff =
+      (currentDate.getFullYear() - startDate.getFullYear()) * 12 +
+      (currentDate.getMonth() - startDate.getMonth());
+    const years = Math.floor(monthsDiff / 12);
+    const months = monthsDiff % 12;
+
+    const timeSinceStart =
+      years > 0
+        ? `${years} year${years !== 1 ? "s" : ""}${months > 0 ? `, ${months} month${months !== 1 ? "s" : ""}` : ""}`
+        : `${months} month${months !== 1 ? "s" : ""}`;
+
+    // Find monthlyNet from data
+    const dataPoint = data.find((d) => d.date === label);
+    const monthlyNet = dataPoint?.monthlyNet || 0;
+
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
+        <p className="font-semibold text-sm mb-2">
+          {label} ({timeSinceStart})
+        </p>
+        <p className="text-sm text-gray-600 mb-2">
+          Monthly Net: ${Number(monthlyNet).toLocaleString()}
+        </p>
+        {payload.map((entry, index) => (
+          <p key={index} className="text-sm" style={{ color: entry.color }}>
+            {entry.name}: ${Number(entry.value).toLocaleString()}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 export function LineGraph({
   data,
@@ -38,7 +88,7 @@ export function LineGraph({
     );
   }
 
-  const yearOptions = [1, 5, 10, 15, 20, 25, 30];
+  const yearOptions = [1, 5, 10, 15, 20, 25, 30, 40, 50];
 
   return (
     <div className="w-full h-80 bg-white rounded-xl shadow-sm border border-border p-4 mt-6">
@@ -82,18 +132,7 @@ export function LineGraph({
             tickLine={false}
             tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
           />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "8px",
-              fontSize: "12px",
-            }}
-            formatter={(value, name) => [
-              `$${Number(value).toLocaleString()}`,
-              name,
-            ]}
-          />
+          <Tooltip content={<CustomTooltip data={data} />} />
           <Legend wrapperStyle={{ fontSize: "12px" }} />
           <Line
             type="monotone"

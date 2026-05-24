@@ -25,6 +25,7 @@ interface GraphDataPoint {
   cashOnHand: number;
   equity: number;
   remainingLoanBalance: number;
+  monthlyNet: number;
 }
 
 export default function Build() {
@@ -36,8 +37,13 @@ export default function Build() {
   const [loanOverlapMonthsMap, setLoanOverlapMonthsMap] = useState<
     Record<number, number>
   >({});
-  const [calculatedRefinancePercentage, setCalculatedRefinancePercentage] =
-    useState<string | null>(null);
+  const [idealCashHoldingBalance, setIdealCashHoldingBalance] =
+    useState("10000");
+  const [cashStrategy, setCashStrategy] = useState<"profit" | "paydown">(
+    "profit",
+  );
+  const [estimatedHomeAppreciationRate, setEstimatedHomeAppreciationRate] =
+    useState("3");
 
   const hasBuyBlock = blocks.some((b) => b.type === "buy");
   const hasSellBlock = blocks.some((b) => b.type === "sell");
@@ -96,28 +102,67 @@ export default function Build() {
   useEffect(() => {
     const syncBlocks = async () => {
       try {
-        const response = await fetch("/api/build/update", {
+        const response = await fetch("/api/build", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             blocksJson: JSON.stringify(blocks),
             years: selectedYears,
+            cashStrategy,
+            idealCashHoldingBalance: parseFloat(idealCashHoldingBalance) || 0,
+            estimatedHomeAppreciationRate:
+              parseFloat(estimatedHomeAppreciationRate) || 0,
           }),
         });
         const result = await response.json();
         console.log("API Response Debug:", result);
         if (result.debug) {
           console.log("Blocks Setup:", result.debug.blocks);
-          if (result.debug.calculatedRefinancePercentage) {
-            console.log(
-              "Calculated Refinance Percentage:",
-              result.debug.calculatedRefinancePercentage,
+          // Update blocks state with calculated values from backend
+          // Only update if the backend returned blocks with calculated refinance cost
+          if (result.debug.blocks && result.debug.blocks.length > 0) {
+            const hasCalculatedRefinance = result.debug.blocks.some(
+              (b: any) =>
+                b.type === "refinance" &&
+                b.data?.cost &&
+                parseFloat(b.data.cost) > 0,
             );
-            setCalculatedRefinancePercentage(
-              result.debug.calculatedRefinancePercentage,
-            );
-          } else {
-            setCalculatedRefinancePercentage(null);
+            if (hasCalculatedRefinance) {
+              setBlocks((prevBlocks) => {
+                // Merge calculated values into existing blocks to preserve IDs
+                // Only return new array if something actually changed (avoid infinite loop)
+                let changed = false;
+                const updatedBlocks = prevBlocks.map((prevBlock) => {
+                  const calculatedBlock = result.debug.blocks.find(
+                    (cb: any) => cb.type === prevBlock.type,
+                  );
+                  if (
+                    calculatedBlock &&
+                    calculatedBlock.data &&
+                    prevBlock.type === "refinance" &&
+                    calculatedBlock.data.cost
+                  ) {
+                    const prevData = prevBlock.data as RefinanceBlockData;
+                    if (
+                      prevData.cost !== calculatedBlock.data.cost ||
+                      prevData.costType !== calculatedBlock.data.costType
+                    ) {
+                      changed = true;
+                      return {
+                        ...prevBlock,
+                        data: {
+                          ...prevBlock.data,
+                          cost: calculatedBlock.data.cost,
+                          costType: calculatedBlock.data.costType,
+                        },
+                      };
+                    }
+                  }
+                  return prevBlock;
+                });
+                return changed ? updatedBlocks : prevBlocks;
+              });
+            }
           }
         }
         if (result.graphData) {
@@ -138,7 +183,13 @@ export default function Build() {
     if (blocks.length > 0) {
       void syncBlocks();
     }
-  }, [blocks, selectedYears]);
+  }, [
+    blocks,
+    selectedYears,
+    cashStrategy,
+    idealCashHoldingBalance,
+    estimatedHomeAppreciationRate,
+  ]);
 
   return (
     <div className="p-6">
@@ -151,83 +202,160 @@ export default function Build() {
             Create, organize, and manage your property investment
           </p>
         </div>
-        <div className="relative">
-          <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium transition-colors flex items-center gap-2 shadow-md"
-            title="Add block"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            <span>Add Block</span>
-          </button>
-          {dropdownOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-border py-2 z-50">
-              <button
-                onClick={() => {
-                  addBlock("buy");
-                  setDropdownOpen(false);
-                }}
-                disabled={hasBuyBlock}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                Buy Block
-              </button>
-              <button
-                onClick={() => {
-                  addBlock("renovate");
-                  setDropdownOpen(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-              >
-                <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                Renovate Block
-              </button>
-              <button
-                onClick={() => {
-                  addBlock("refinance");
-                  setDropdownOpen(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-              >
-                <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                Refinance Block
-              </button>
-              <button
-                onClick={() => {
-                  addBlock("rent");
-                  setDropdownOpen(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-              >
-                <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                Rent Block
-              </button>
-              <button
-                onClick={() => {
-                  addBlock("sell");
-                  setDropdownOpen(false);
-                }}
-                disabled={hasSellBlock}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <span className="w-2 h-2 rounded-full bg-teal-500"></span>
-                Sell Block
-              </button>
+        <div className="flex items-center gap-4">
+          <div className="bg-white rounded-lg shadow-sm border border-border p-3">
+            <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">
+              Project Settings
+            </h3>
+            <div className="flex items-center gap-2 mb-3">
+              <label className="text-xs text-text-muted whitespace-nowrap">
+                Ideal Cash Holding Balance
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">
+                  $
+                </span>
+                <input
+                  type="number"
+                  value={idealCashHoldingBalance}
+                  onChange={(e) => setIdealCashHoldingBalance(e.target.value)}
+                  className="w-32 pl-7 pr-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="10000"
+                />
+              </div>
             </div>
-          )}
+            <div className="flex items-center gap-2 mb-3">
+              <label className="text-xs text-text-muted whitespace-nowrap">
+                Est. Home Appreciation Rate
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={estimatedHomeAppreciationRate}
+                  onChange={(e) =>
+                    setEstimatedHomeAppreciationRate(e.target.value)
+                  }
+                  className="w-20 pl-3 pr-8 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="3"
+                  step="0.1"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">
+                  %
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="cashStrategy"
+                  value="profit"
+                  checked={cashStrategy === "profit"}
+                  onChange={(e) =>
+                    setCashStrategy(e.target.value as "profit" | "paydown")
+                  }
+                  className="w-4 h-4 text-primary focus:ring-primary"
+                />
+                <span className="text-xs text-text">Profit</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="cashStrategy"
+                  value="paydown"
+                  checked={cashStrategy === "paydown"}
+                  onChange={(e) =>
+                    setCashStrategy(e.target.value as "profit" | "paydown")
+                  }
+                  className="w-4 h-4 text-primary focus:ring-primary"
+                />
+                <span className="text-xs text-text">Paydown Loan</span>
+              </label>
+            </div>
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium transition-colors flex items-center gap-2 shadow-md"
+              title="Add block"
+              data-testid="add-block-button"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span>Add Block</span>
+            </button>
+            {dropdownOpen && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-border py-2 z-50">
+                <button
+                  onClick={() => {
+                    addBlock("buy");
+                    setDropdownOpen(false);
+                  }}
+                  disabled={hasBuyBlock}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="add-buy-block"
+                >
+                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  Buy Block
+                </button>
+                <button
+                  onClick={() => {
+                    addBlock("renovate");
+                    setDropdownOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                  data-testid="add-renovate-block"
+                >
+                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  Renovate Block
+                </button>
+                <button
+                  onClick={() => {
+                    addBlock("refinance");
+                    setDropdownOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                  data-testid="add-refinance-block"
+                >
+                  <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                  Refinance Block
+                </button>
+                <button
+                  onClick={() => {
+                    addBlock("rent");
+                    setDropdownOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                  data-testid="add-rent-block"
+                >
+                  <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                  Rent Block
+                </button>
+                <button
+                  onClick={() => {
+                    addBlock("sell");
+                    setDropdownOpen(false);
+                  }}
+                  disabled={hasSellBlock}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="w-2 h-2 rounded-full bg-teal-500"></span>
+                  Sell Block
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -339,7 +467,6 @@ export default function Build() {
                 <RefinanceBlock
                   data={block.data as RefinanceBlockData}
                   onChange={(data) => updateBlockData(block.id, data)}
-                  calculatedRefinancePercentage={calculatedRefinancePercentage}
                 />
               )}
               {block.type === "rent" && (

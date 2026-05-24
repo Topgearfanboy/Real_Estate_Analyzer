@@ -8,6 +8,7 @@ interface CurrencyFieldProps {
   size?: "sm" | "md";
   fullWidth?: boolean;
   variant?: "default" | "combined";
+  "data-testid"?: string;
 }
 
 function formatCurrency(num: number): string {
@@ -27,6 +28,7 @@ export function CurrencyField({
   size = "md",
   fullWidth = true,
   variant = "default",
+  "data-testid": dataTestId,
 }: CurrencyFieldProps) {
   const isCombined = variant === "combined";
   const [inputValue, setInputValue] = useState(value);
@@ -82,6 +84,7 @@ export function CurrencyField({
         onFocus={handleFocus}
         onBlur={handleBlur}
         placeholder={placeholder}
+        data-testid={dataTestId}
         className={`${fullWidth ? "w-full" : ""} ${isCombined ? "pl-3 pr-1" : "px-3"} ${inputClasses} focus:outline-none ${
           isCombined
             ? "border-0 h-full"

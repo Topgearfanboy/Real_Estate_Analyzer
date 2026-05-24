@@ -37,6 +37,7 @@ export function RentBlock({ data, onChange }: RentBlockProps) {
           label="Monthly Rent"
           value={data.monthlyRent}
           onChange={(value) => updateField("monthlyRent", value)}
+          data-testid="rent-monthly-rent"
         />
 
         {/* Time Rented - Months and Years */}

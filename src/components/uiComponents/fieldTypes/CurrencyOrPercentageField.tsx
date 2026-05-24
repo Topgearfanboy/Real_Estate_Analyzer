@@ -9,6 +9,7 @@ interface CurrencyOrPercentageFieldProps {
   onTypeChange: (type: "$" | "%") => void;
   width?: string;
   disabled?: boolean;
+  "data-testid"?: string;
 }
 
 export function CurrencyOrPercentageField({
@@ -18,10 +19,14 @@ export function CurrencyOrPercentageField({
   onTypeChange,
   width = "w-24",
   disabled = false,
+  "data-testid": dataTestId,
 }: CurrencyOrPercentageFieldProps) {
   if (disabled) {
     return (
-      <div className="flex border border-border rounded-lg overflow-hidden bg-bg-muted justify-between pointer-events-none opacity-60">
+      <div
+        className="flex border border-border rounded-lg overflow-hidden bg-bg-muted justify-between pointer-events-none opacity-60"
+        data-testid={dataTestId}
+      >
         {type === "$" ? (
           <div className={width}>
             <CurrencyField
@@ -29,6 +34,7 @@ export function CurrencyOrPercentageField({
               onChange={() => {}}
               fullWidth={true}
               variant="combined"
+              data-testid={dataTestId}
             />
           </div>
         ) : (
@@ -38,6 +44,7 @@ export function CurrencyOrPercentageField({
               onChange={() => {}}
               fullWidth={true}
               variant="combined"
+              data-testid={dataTestId}
             />
           </div>
         )}
@@ -53,7 +60,10 @@ export function CurrencyOrPercentageField({
   }
 
   return (
-    <div className="flex border border-border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary justify-between">
+    <div
+      className="flex border border-border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary justify-between"
+      data-testid={dataTestId}
+    >
       {type === "$" ? (
         <div className={width}>
           <CurrencyField
@@ -61,6 +71,7 @@ export function CurrencyOrPercentageField({
             onChange={onChange}
             fullWidth={true}
             variant="combined"
+            data-testid={dataTestId}
           />
         </div>
       ) : (
@@ -70,6 +81,7 @@ export function CurrencyOrPercentageField({
             onChange={onChange}
             fullWidth={true}
             variant="combined"
+            data-testid={dataTestId}
           />
         </div>
       )}

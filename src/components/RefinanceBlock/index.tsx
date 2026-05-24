@@ -18,23 +18,15 @@ import {
 interface RefinanceBlockProps {
   data: RefinanceBlockData;
   onChange: (data: RefinanceBlockData) => void;
-  calculatedRefinancePercentage?: string | null;
 }
 
-export function RefinanceBlock({
-  data,
-  onChange,
-  calculatedRefinancePercentage,
-}: RefinanceBlockProps) {
+export function RefinanceBlock({ data, onChange }: RefinanceBlockProps) {
   const [remainingEquityExpanded, setRemainingEquityExpanded] = useState(false);
   const [refinanceSummaryExpanded, setRefinanceSummaryExpanded] =
     useState(false);
 
-  // Use calculated percentage from backend for non-cash-out refinance
-  const displayPercentage =
-    !data.cashOut && calculatedRefinancePercentage
-      ? calculatedRefinancePercentage
-      : data.cost;
+  // Use data.cost directly for display
+  const displayPercentage = data.cost;
 
   return (
     <div className="space-y-4">
@@ -73,6 +65,7 @@ export function RefinanceBlock({
           onChange={(value) =>
             updateField(data, onChange, "estimatedValue", value)
           }
+          data-testid="refinance-estimated-value"
         />
 
         <PercentageField
@@ -81,6 +74,7 @@ export function RefinanceBlock({
           onChange={(value) =>
             updateField(data, onChange, "interestRate", value)
           }
+          data-testid="refinance-interest-rate"
         />
       </div>
 
@@ -90,11 +84,13 @@ export function RefinanceBlock({
             Financed Amount
           </label>
           <CurrencyOrPercentageField
+            key={displayPercentage}
             value={displayPercentage}
             type={data.costType}
             onChange={(value) => updateField(data, onChange, "cost", value)}
             onTypeChange={(type) => handleCostTypeChange(data, onChange, type)}
             disabled={!data.cashOut}
+            data-testid="refinance-financed-amount"
           />
         </div>
 
@@ -199,7 +195,8 @@ export function RefinanceBlock({
         // Parse values
         const estimatedValueNum =
           parseFloat(data.estimatedValue.replace(/[^0-9.]/g, "")) || 0;
-        const costNum = parseFloat(data.cost.replace(/[^0-9.]/g, "")) || 0;
+        const costNum =
+          parseFloat(displayPercentage.replace(/[^0-9.]/g, "")) || 0;
         const loanAmount =
           data.costType === "%" ? (costNum / 100) * estimatedValueNum : costNum;
         const closingCostsNum =

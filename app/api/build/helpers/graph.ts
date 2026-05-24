@@ -9,7 +9,7 @@ import { calculateLoanBalanceOverTime } from "./loanBalance";
 import { calculateTimeline } from "./timeline";
 
 // Helper function to process rent block data
-function processRentBlockData(blocks: Block[]): {
+function processRentBlockData(blocks: Block[]): Array<{
   baseMonthlyRent: number;
   vacancy: number;
   management: number;
@@ -18,72 +18,96 @@ function processRentBlockData(blocks: Block[]): {
   annualRentIncreaseType: "$" | "%";
   rentStartMonth: number;
   rentDurationMonths: number;
-} | null {
-  const rentBlock = blocks.find((block) => block.type === "rent");
+}> {
+  const rentBlocks = blocks.filter((block) => block.type === "rent");
 
-  if (!rentBlock) {
-    return null;
+  if (rentBlocks.length === 0) {
+    return [];
   }
 
-  const rentData = rentBlock.data as RentBlockData;
-
-  // Parse rent income
-  const monthlyRent = parseFloat(rentData.monthlyRent) || 0;
-
-  // Parse vacancy
-  const vacancyRaw = parseFloat(rentData.vacancy) || 0;
-  const vacancy =
-    rentData.vacancyType === "%"
-      ? (vacancyRaw / 100) * monthlyRent
-      : vacancyRaw;
-
-  // Parse management
-  const managementRaw = parseFloat(rentData.management) || 0;
-  const management =
-    rentData.managementType === "%"
-      ? (managementRaw / 100) * monthlyRent
-      : managementRaw;
-
-  // Parse maintenance
-  const maintenanceRaw = parseFloat(rentData.maintenance) || 0;
-  const maintenance =
-    rentData.maintenanceType === "%"
-      ? (maintenanceRaw / 100) * monthlyRent
-      : maintenanceRaw;
-
-  // Parse annual rent increase
-  const annualRentIncreaseRaw =
-    parseFloat(rentData.annualRentIncrease || "0") || 0;
-
-  // Calculate rent duration
-  const months = parseInt(rentData.timeRentedMonths) || 0;
-  const years = parseInt(rentData.timeRentedYears) || 0;
-  const rentDurationMonths = months + years * 12;
-
-  // Find rent block index in timeline to determine start month
   const timeline = calculateTimeline(blocks);
-  const rentIndex = timeline.findIndex((t) => t.type === "rent");
-  let rentStartMonth = 0;
-  if (rentIndex >= 0) {
-    for (let i = 0; i < rentIndex; i++) {
-      const blockDuration = Math.round(
-        (timeline[i].endDate.getTime() - timeline[i].startDate.getTime()) /
-          (1000 * 60 * 60 * 24 * 30),
-      );
-      rentStartMonth += blockDuration;
-    }
-  }
+  const rentBlockDataArray: Array<{
+    baseMonthlyRent: number;
+    vacancy: number;
+    management: number;
+    maintenance: number;
+    annualRentIncrease: number;
+    annualRentIncreaseType: "$" | "%";
+    rentStartMonth: number;
+    rentDurationMonths: number;
+  }> = [];
 
-  return {
-    baseMonthlyRent: monthlyRent,
-    vacancy,
-    management,
-    maintenance,
-    annualRentIncrease: annualRentIncreaseRaw,
-    annualRentIncreaseType: rentData.annualRentIncreaseType,
-    rentStartMonth,
-    rentDurationMonths,
-  };
+  rentBlocks.forEach((rentBlock) => {
+    const rentData = rentBlock.data as RentBlockData;
+
+    // Parse rent income
+    const monthlyRent = parseFloat(rentData.monthlyRent) || 0;
+
+    // Parse vacancy
+    const vacancyRaw = parseFloat(rentData.vacancy) || 0;
+    const vacancy =
+      rentData.vacancyType === "%"
+        ? (vacancyRaw / 100) * monthlyRent
+        : vacancyRaw;
+
+    // Parse management
+    const managementRaw = parseFloat(rentData.management) || 0;
+    const management =
+      rentData.managementType === "%"
+        ? (managementRaw / 100) * monthlyRent
+        : managementRaw;
+
+    // Parse maintenance
+    const maintenanceRaw = parseFloat(rentData.maintenance) || 0;
+    const maintenance =
+      rentData.maintenanceType === "%"
+        ? (maintenanceRaw / 100) * monthlyRent
+        : maintenanceRaw;
+
+    // Parse annual rent increase
+    const annualRentIncreaseRaw =
+      parseFloat(rentData.annualRentIncrease || "0") || 0;
+
+    // Calculate rent duration
+    const months = parseInt(rentData.timeRentedMonths) || 0;
+    const years = parseInt(rentData.timeRentedYears) || 0;
+    const rentDurationMonths = months + years * 12;
+
+    // Find this specific rent block index in timeline to determine start month
+    // Since TimelineEntry doesn't have an id, we match by the Nth rent block
+    let rentStartMonth = 0;
+    let currentRentBlockCount = 0;
+    for (let i = 0; i < timeline.length; i++) {
+      if (timeline[i].type === "rent") {
+        if (currentRentBlockCount === rentBlockDataArray.length) {
+          // This is the timeline entry for the current rent block
+          for (let j = 0; j < i; j++) {
+            const blockDuration = Math.round(
+              (timeline[j].endDate.getTime() -
+                timeline[j].startDate.getTime()) /
+                (1000 * 60 * 60 * 24 * 30),
+            );
+            rentStartMonth += blockDuration;
+          }
+          break;
+        }
+        currentRentBlockCount++;
+      }
+    }
+
+    rentBlockDataArray.push({
+      baseMonthlyRent: monthlyRent,
+      vacancy,
+      management,
+      maintenance,
+      annualRentIncrease: annualRentIncreaseRaw,
+      annualRentIncreaseType: rentData.annualRentIncreaseType,
+      rentStartMonth,
+      rentDurationMonths,
+    });
+  });
+
+  return rentBlockDataArray;
 }
 
 // Helper function to process renovate block data
@@ -142,15 +166,19 @@ export interface GraphDataPoint {
   cashOnHand: number;
   equity: number;
   remainingLoanBalance: number;
+  monthlyNet: number;
 }
 
 // Main calculation function for graph data
 export function calculateGraphData(
   blocks: Block[],
   years: number = 30,
+  cashStrategy: "profit" | "paydown" = "profit",
+  idealCashHoldingBalance: number = 0,
+  estimatedHomeAppreciationRate: number = 0,
 ): GraphDataPoint[] {
   const buyBlockData = processBuyBlockData(blocks);
-  const rentBlockData = processRentBlockData(blocks);
+  const rentBlockDataArray = processRentBlockData(blocks);
   const renovateBlockData = processRenovateBlockData(blocks);
 
   if (!buyBlockData) {
@@ -162,6 +190,7 @@ export function calculateGraphData(
         cashOnHand: 0,
         equity: 0,
         remainingLoanBalance: 0,
+        monthlyNet: 0,
       },
     ];
   }
@@ -345,6 +374,7 @@ export function calculateGraphData(
       loanAmount,
       buyBlockData.monthlyRate,
       buyBlockData.loanTermYears,
+      years * 12, // Use the requested years instead of default loan term
     );
     loanBalances = loanData.balances;
   }
@@ -355,7 +385,7 @@ export function calculateGraphData(
   const maxMonths = years * 12; // Convert years to months
 
   // Calculate cash on hand over time
-  let currentCashOnHand = 10000; // Starting cash on hand
+  let currentCashOnHand = 0; // Starting cash on hand
   let currentInvestedCapital = downpayment; // Starting invested capital
 
   for (let i = 0; i < Math.min(loanBalances.length, maxMonths); i++) {
@@ -366,8 +396,15 @@ export function calculateGraphData(
     );
     const dateStr = monthDate.toISOString().slice(0, 7); // YYYY-MM format
 
+    // Apply home appreciation to property value
+    if (i > 0 && estimatedHomeAppreciationRate > 0) {
+      const monthlyAppreciationRate = estimatedHomeAppreciationRate / 100 / 12;
+      propertyValue *= 1 + monthlyAppreciationRate;
+    }
+
     // Calculate cash flow for this month
     let monthlyCashFlow = 0;
+    let monthlyNet = 0; // Rental income - expenses - mortgage
 
     // Check if loan is paid off
     const loanPaidOff = loanBalances[i] === 0;
@@ -413,36 +450,37 @@ export function calculateGraphData(
       }
     }
 
-    // Add rent income if within rent period
-    if (
-      rentBlockData &&
-      i >= rentBlockData.rentStartMonth &&
-      i < rentBlockData.rentStartMonth + rentBlockData.rentDurationMonths
-    ) {
-      // Calculate current rent with annual increase
-      const monthsIntoRent = i - rentBlockData.rentStartMonth;
-      const yearsIntoRent = Math.floor(monthsIntoRent / 12);
+    // Add rent income if within any rent period
+    for (const rentBlockData of rentBlockDataArray) {
+      if (
+        i >= rentBlockData.rentStartMonth &&
+        i < rentBlockData.rentStartMonth + rentBlockData.rentDurationMonths
+      ) {
+        // Calculate current rent with annual increase
+        const monthsIntoRent = i - rentBlockData.rentStartMonth;
+        const yearsIntoRent = Math.floor(monthsIntoRent / 12);
 
-      let currentRent = rentBlockData.baseMonthlyRent;
+        let currentRent = rentBlockData.baseMonthlyRent;
 
-      // Apply annual rent increase
-      if (rentBlockData.annualRentIncrease > 0) {
-        for (let year = 0; year < yearsIntoRent; year++) {
-          if (rentBlockData.annualRentIncreaseType === "%") {
-            currentRent *= 1 + rentBlockData.annualRentIncrease / 100;
-          } else {
-            currentRent += rentBlockData.annualRentIncrease;
+        // Apply annual rent increase
+        if (rentBlockData.annualRentIncrease > 0) {
+          for (let year = 0; year < yearsIntoRent; year++) {
+            if (rentBlockData.annualRentIncreaseType === "%") {
+              currentRent *= 1 + rentBlockData.annualRentIncrease / 100;
+            } else {
+              currentRent += rentBlockData.annualRentIncrease;
+            }
           }
         }
-      }
 
-      // Calculate net cash flow with current rent
-      const netCashFlow =
-        currentRent -
-        rentBlockData.vacancy -
-        rentBlockData.management -
-        rentBlockData.maintenance;
-      monthlyCashFlow += netCashFlow;
+        // Calculate net cash flow with current rent
+        const netCashFlow =
+          currentRent -
+          rentBlockData.vacancy -
+          rentBlockData.management -
+          rentBlockData.maintenance;
+        monthlyCashFlow += netCashFlow;
+      }
     }
 
     // Apply renovation costs during renovation period
@@ -469,6 +507,34 @@ export function calculateGraphData(
       currentCashOnHand = 0;
     }
 
+    // Track paydown amount for monthly net calculation
+    let paydownAmount = 0;
+
+    // Apply paydown loan strategy if selected
+    if (cashStrategy === "paydown" && !loanPaidOff) {
+      const excessCash = currentCashOnHand - idealCashHoldingBalance;
+      if (excessCash > 0 && loanBalances[i] > 0) {
+        // Apply excess cash to loan principal
+        paydownAmount = Math.min(excessCash, loanBalances[i]);
+        currentCashOnHand -= paydownAmount;
+        loanBalances[i] -= paydownAmount;
+        // Update all future loan balances to reflect the paydown
+        for (let j = i + 1; j < loanBalances.length; j++) {
+          if (loanBalances[j] > 0) {
+            loanBalances[j] = Math.max(0, loanBalances[j] - paydownAmount);
+          }
+        }
+      }
+    }
+
+    // Update monthly net to include cash on hand accumulation and loan principal paydown
+    // Monthly net represents the total cash flow that goes to either cash on hand or loan principal
+    // If monthlyCashFlow is positive, that cash goes to cash on hand or loan principal
+    // If monthlyCashFlow is negative, that represents cash that had to be added from invested capital
+    if (rentBlockDataArray.length > 0) {
+      monthlyNet = monthlyCashFlow;
+    }
+
     const cashOnHand = currentCashOnHand;
     const investedCapital = currentInvestedCapital;
     const equity = propertyValue - loanBalances[i]; // Equity = property value - remaining loan balance
@@ -479,6 +545,7 @@ export function calculateGraphData(
       cashOnHand,
       equity,
       remainingLoanBalance: loanBalances[i],
+      monthlyNet,
     });
   }
 

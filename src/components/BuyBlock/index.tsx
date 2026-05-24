@@ -48,11 +48,13 @@ export function BuyBlock({ data, onChange }: BuyBlockProps) {
           label="Cost"
           value={data.cost}
           onChange={(value) => updateField("cost", value)}
+          data-testid="buy-cost"
         />
         <PercentageField
           label="Interest Rate"
           value={data.interestRate}
           onChange={(value) => updateField("interestRate", value)}
+          data-testid="buy-interest-rate"
         />
         <div>
           <label className="block text-sm font-medium text-text-muted mb-1">

@@ -9,6 +9,10 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const blocks: Block[] = body.blocksJson ? JSON.parse(body.blocksJson) : [];
   const years: number = body.years || 30; // Default to 30 years if not specified
+  const cashStrategy: "profit" | "paydown" = body.cashStrategy || "profit";
+  const idealCashHoldingBalance: number = body.idealCashHoldingBalance || 0;
+  const estimatedHomeAppreciationRate: number =
+    body.estimatedHomeAppreciationRate || 0;
 
   // Calculate timeline
   const timeline = calculateTimeline(blocks);
@@ -33,7 +37,13 @@ export async function POST(request: NextRequest) {
   });
 
   // Calculate graph data based on blocks and years
-  const graphData = calculateGraphData(blocks, years);
+  const graphData = calculateGraphData(
+    blocks,
+    years,
+    cashStrategy,
+    idealCashHoldingBalance,
+    estimatedHomeAppreciationRate,
+  );
 
   const response = {
     graphData: graphData,

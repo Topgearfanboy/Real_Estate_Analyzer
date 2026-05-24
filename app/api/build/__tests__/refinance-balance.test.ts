@@ -89,19 +89,6 @@ describe("Integration Test - Refinance Balance", () => {
 
     // Calculate graph data
     const graphData = calculateGraphData(blocks, 30);
-    console.log("Graph Data (first 5 points):", graphData.slice(0, 5));
-    console.log("Graph Data (last 5 points):", graphData.slice(-5));
-
-    // Debug: Show monthly payment breakdown
-    console.log("Monthly payment breakdown:");
-    for (let i = 0; i < 12; i++) {
-      if (i > 0) {
-        const decrease =
-          graphData[i - 1].remainingLoanBalance -
-          graphData[i].remainingLoanBalance;
-        console.log(`Month ${i}: decrease = ${decrease}`);
-      }
-    }
 
     // Verify the refinance monthly payment is close to expected $1,439
     expect(loanInfo.monthlyPayment).toBeCloseTo(1439, 0); // Allow some rounding
@@ -109,9 +96,6 @@ describe("Integration Test - Refinance Balance", () => {
     // Verify remaining loan balance decreases over time
     const firstBalance = graphData[0].remainingLoanBalance;
     const lastBalance = graphData[graphData.length - 1].remainingLoanBalance;
-
-    console.log("First balance:", firstBalance);
-    console.log("Last balance:", lastBalance);
 
     // Balance should decrease over time
     expect(lastBalance).toBeLessThan(firstBalance);
@@ -124,7 +108,6 @@ describe("Integration Test - Refinance Balance", () => {
     // Initial loan: $225,000 - 20% = $180,000
     // After 12 payments at 6% interest over 1 year (loan should be paid off)
     const month12Balance = graphData[11].remainingLoanBalance;
-    console.log("Balance at month 12:", month12Balance);
 
     // With a 1-year loan, it should be paid off by month 12
     expect(month12Balance).toBe(0);
@@ -132,7 +115,6 @@ describe("Integration Test - Refinance Balance", () => {
     // Verify the balance after refinance (month 13 onwards)
     // Refinance: 80% of $300,000 = $240,000 new loan
     const month13Balance = graphData[12].remainingLoanBalance;
-    console.log("Balance at month 13 (after refinance):", month13Balance);
 
     // After refinance, balance should jump up to ~$240,000
     expect(month13Balance).toBeCloseTo(240000, -3); // Allow some rounding
