@@ -2,7 +2,7 @@ import type { RenovateBlockData, RenovationItem } from "../../types";
 
 export const addItem = (
   data: RenovateBlockData,
-  onChange: (data: RenovateBlockData) => void
+  onChange: (data: RenovateBlockData) => void,
 ) => {
   onChange({
     ...data,
@@ -13,7 +13,7 @@ export const addItem = (
 export const removeItem = (
   data: RenovateBlockData,
   onChange: (data: RenovateBlockData) => void,
-  index: number
+  index: number,
 ) => {
   const newItems = data.items.filter((_, i) => i !== index);
   onChange({ ...data, items: newItems });
@@ -24,10 +24,10 @@ export const updateItem = (
   onChange: (data: RenovateBlockData) => void,
   index: number,
   field: keyof RenovationItem,
-  value: string
+  value: string,
 ) => {
   const newItems = data.items.map((item, i) =>
-    i === index ? { ...item, [field]: value } : item
+    i === index ? { ...item, [field]: value } : item,
   );
   onChange({ ...data, items: newItems });
 };
@@ -38,7 +38,7 @@ export const updateMonthlyCost = <
   data: RenovateBlockData,
   onChange: (data: RenovateBlockData) => void,
   field: K,
-  value: RenovateBlockData["monthlyCostToOwn"][K]
+  value: RenovateBlockData["monthlyCostToOwn"][K],
 ) => {
   onChange({
     ...data,
@@ -52,7 +52,7 @@ export const updateUtilities = <
   data: RenovateBlockData,
   onChange: (data: RenovateBlockData) => void,
   field: K,
-  value: RenovateBlockData["monthlyCostToOwn"]["utilities"][K]
+  value: RenovateBlockData["monthlyCostToOwn"]["utilities"][K],
 ) => {
   onChange({
     ...data,
@@ -67,7 +67,7 @@ export const updateTimeToRenovate = (
   data: RenovateBlockData,
   onChange: (data: RenovateBlockData) => void,
   field: "days" | "months" | "years",
-  value: string
+  value: string,
 ) => {
   onChange({
     ...data,
@@ -95,10 +95,68 @@ export const calculateTotalDays = (timeToRenovate: {
 
 export const calculateAverageCostPerItem = (
   totalCost: number,
-  itemCount: number
+  itemCount: number,
 ): string => {
   if (itemCount > 0 && totalCost > 0) {
     return `$${Math.round(totalCost / itemCount).toLocaleString()}`;
   }
   return "-";
+};
+
+export const calculateTotalMonths = (timeToRenovate: {
+  days: string;
+  months: string;
+  years: string;
+}): number => {
+  const days = parseInt(timeToRenovate.days) || 0;
+  const months = parseInt(timeToRenovate.months) || 0;
+  const years = parseInt(timeToRenovate.years) || 0;
+  // Convert everything to months (days / 30 + months + years * 12)
+  return Math.round(days / 30) + months + years * 12;
+};
+
+export const calculateMonthlyUtilities = (utilities: {
+  county: string;
+  electricity: string;
+}): number => {
+  const county = parseFloat(utilities.county.replace(/[^0-9.]/g, "")) || 0;
+  const electricity =
+    parseFloat(utilities.electricity.replace(/[^0-9.]/g, "")) || 0;
+  return county + electricity;
+};
+
+export const calculateTotalRenovationCost = (
+  items: RenovationItem[],
+  utilities: { county: string; electricity: string },
+  timeToRenovate: { days: string; months: string; years: string },
+  monthlyPayment?: number,
+  loanOverlapMonths?: number,
+): number => {
+  const itemsCost = calculateTotalCost(items);
+  const monthlyUtilities = calculateMonthlyUtilities(utilities);
+  const totalMonths = calculateTotalMonths(timeToRenovate);
+
+  // Add monthly payment only for the months it overlaps with loan
+  const loanPaymentCost = (loanOverlapMonths || 0) * (monthlyPayment || 0);
+  const utilitiesCost = monthlyUtilities * totalMonths;
+
+  console.log(
+    JSON.stringify(
+      {
+        debugType: "renovationCostCalculation",
+        itemsCost,
+        monthlyUtilities,
+        totalMonths,
+        monthlyPayment,
+        loanOverlapMonths,
+        loanPaymentCost,
+        utilitiesCost,
+        total: itemsCost + utilitiesCost + loanPaymentCost,
+      },
+      null,
+      2,
+    ),
+  );
+
+  return itemsCost + utilitiesCost + loanPaymentCost;
 };

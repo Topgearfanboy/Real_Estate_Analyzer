@@ -10,12 +10,26 @@ import {
 const mockOnChange = jest.fn();
 
 const createMockData = (
-  overrides: Partial<RefinanceBlockData> = {}
+  overrides: Partial<RefinanceBlockData> = {},
 ): RefinanceBlockData => ({
   cashOut: false,
   estimatedValue: "400000",
   remainingEquityAmount: "80000",
   remainingEquityPercent: "20",
+  cost: "",
+  costType: "$",
+  interestRate: "",
+  closingCosts: "",
+  closingCostsType: "%",
+  propertyTaxes: "",
+  propertyTaxesType: "%",
+  homeownersInsurance: "",
+  homeownersInsuranceType: "$",
+  loanTerm: "30",
+  customLoanTerm: "",
+  loanTermYears: 30,
+  annualHoa: "0",
+  interestOnlyOption: false,
   ...overrides,
 });
 
@@ -66,9 +80,7 @@ describe("RefinanceBlock Helpers", () => {
 
   describe("calculateLoanAmount", () => {
     it("calculates loan amount correctly", () => {
-      expect(
-        calculateLoanAmount("$400,000", "$80,000")
-      ).toBe(320000);
+      expect(calculateLoanAmount("$400,000", "$80,000")).toBe(320000);
     });
 
     it("handles zero values", () => {

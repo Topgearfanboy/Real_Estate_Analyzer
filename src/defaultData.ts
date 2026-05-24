@@ -22,6 +22,7 @@ export const defaultBuyData = (): BuyBlockData => ({
   homeownersInsuranceType: "$",
   loanTerm: "30",
   customLoanTerm: "",
+  loanTermYears: 30,
   interestOnlyOption: false,
   loanAnalysis: {
     incomeNeeded: "",
@@ -65,6 +66,8 @@ export const defaultRefinanceData = (): RefinanceBlockData => ({
   homeownersInsuranceType: "$",
   loanTerm: "30",
   customLoanTerm: "",
+  loanTermYears: 30,
+  annualHoa: "0",
   interestOnlyOption: false,
 });
 
@@ -78,6 +81,8 @@ export const defaultRentData = (): RentBlockData => ({
   managementType: "%",
   maintenance: "100",
   maintenanceType: "$",
+  annualRentIncrease: "0",
+  annualRentIncreaseType: "%",
 });
 
 export const defaultSellData = (): SellBlockData => ({

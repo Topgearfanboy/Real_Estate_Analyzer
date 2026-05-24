@@ -18,12 +18,23 @@ import {
 interface RefinanceBlockProps {
   data: RefinanceBlockData;
   onChange: (data: RefinanceBlockData) => void;
+  calculatedRefinancePercentage?: string | null;
 }
 
-export function RefinanceBlock({ data, onChange }: RefinanceBlockProps) {
+export function RefinanceBlock({
+  data,
+  onChange,
+  calculatedRefinancePercentage,
+}: RefinanceBlockProps) {
   const [remainingEquityExpanded, setRemainingEquityExpanded] = useState(false);
   const [refinanceSummaryExpanded, setRefinanceSummaryExpanded] =
     useState(false);
+
+  // Use calculated percentage from backend for non-cash-out refinance
+  const displayPercentage =
+    !data.cashOut && calculatedRefinancePercentage
+      ? calculatedRefinancePercentage
+      : data.cost;
 
   return (
     <div className="space-y-4">
@@ -79,10 +90,11 @@ export function RefinanceBlock({ data, onChange }: RefinanceBlockProps) {
             Financed Amount
           </label>
           <CurrencyOrPercentageField
-            value={data.cost}
+            value={displayPercentage}
             type={data.costType}
             onChange={(value) => updateField(data, onChange, "cost", value)}
             onTypeChange={(type) => handleCostTypeChange(data, onChange, type)}
+            disabled={!data.cashOut}
           />
         </div>
 
@@ -185,11 +197,14 @@ export function RefinanceBlock({ data, onChange }: RefinanceBlockProps) {
       {/* Refinance Summary - with always-visible monthly payment */}
       {(() => {
         // Parse values
+        const estimatedValueNum =
+          parseFloat(data.estimatedValue.replace(/[^0-9.]/g, "")) || 0;
         const costNum = parseFloat(data.cost.replace(/[^0-9.]/g, "")) || 0;
-        const loanAmount = costNum;
+        const loanAmount =
+          data.costType === "%" ? (costNum / 100) * estimatedValueNum : costNum;
         const closingCostsNum =
           data.closingCostsType === "%"
-            ? (parseFloat(data.closingCosts) / 100) * costNum
+            ? (parseFloat(data.closingCosts) / 100) * loanAmount
             : parseFloat(data.closingCosts) || 0;
         const totalCashNeeded = closingCostsNum;
 

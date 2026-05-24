@@ -184,7 +184,10 @@ export function BuyBlock({ data, onChange }: BuyBlockProps) {
 
         // Calculate monthly payment using mortgage formula
         const rateNum = parseFloat(data.interestRate) || 0;
-        const termYears = parseInt(data.loanTerm) || 30;
+        const termYears =
+          data.loanTerm === "custom"
+            ? parseInt(data.customLoanTerm) || 30
+            : parseInt(data.loanTerm) || 30;
         const monthlyRate = rateNum / 100 / 12;
         const numPayments = termYears * 12;
         let monthlyPayment = 0;

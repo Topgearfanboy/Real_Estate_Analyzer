@@ -5,8 +5,8 @@ import type {
   Block,
   BlockType,
   BuyBlockData,
-  RenovateBlockData,
   RefinanceBlockData,
+  RenovateBlockData,
   RentBlockData,
   SellBlockData,
 } from "@/types";
@@ -31,6 +31,13 @@ export default function Build() {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [graphData, setGraphData] = useState<GraphDataPoint[]>([]);
+  const [selectedYears, setSelectedYears] = useState(30);
+  const [monthlyPayment, setMonthlyPayment] = useState(0);
+  const [loanOverlapMonthsMap, setLoanOverlapMonthsMap] = useState<
+    Record<number, number>
+  >({});
+  const [calculatedRefinancePercentage, setCalculatedRefinancePercentage] =
+    useState<string | null>(null);
 
   const hasBuyBlock = blocks.some((b) => b.type === "buy");
   const hasSellBlock = blocks.some((b) => b.type === "sell");
@@ -92,11 +99,36 @@ export default function Build() {
         const response = await fetch("/api/build/update", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ blocksJson: JSON.stringify(blocks) }),
+          body: JSON.stringify({
+            blocksJson: JSON.stringify(blocks),
+            years: selectedYears,
+          }),
         });
         const result = await response.json();
+        console.log("API Response Debug:", result);
+        if (result.debug) {
+          console.log("Blocks Setup:", result.debug.blocks);
+          if (result.debug.calculatedRefinancePercentage) {
+            console.log(
+              "Calculated Refinance Percentage:",
+              result.debug.calculatedRefinancePercentage,
+            );
+            setCalculatedRefinancePercentage(
+              result.debug.calculatedRefinancePercentage,
+            );
+          } else {
+            setCalculatedRefinancePercentage(null);
+          }
+        }
         if (result.graphData) {
+          console.log("Graph Data Values:", result.graphData);
           setGraphData(result.graphData);
+        }
+        if (result.monthlyPayment !== undefined) {
+          setMonthlyPayment(result.monthlyPayment);
+        }
+        if (result.loanOverlapMonthsMap) {
+          setLoanOverlapMonthsMap(result.loanOverlapMonthsMap);
         }
       } catch (error) {
         console.error("Failed to sync blocks:", error);
@@ -106,7 +138,7 @@ export default function Build() {
     if (blocks.length > 0) {
       void syncBlocks();
     }
-  }, [blocks]);
+  }, [blocks, selectedYears]);
 
   return (
     <div className="p-6">
@@ -299,12 +331,15 @@ export default function Build() {
                 <RenovateBlock
                   data={block.data as RenovateBlockData}
                   onChange={(data) => updateBlockData(block.id, data)}
+                  monthlyPayment={monthlyPayment}
+                  loanOverlapMonths={loanOverlapMonthsMap[index] || 0}
                 />
               )}
               {block.type === "refinance" && (
                 <RefinanceBlock
                   data={block.data as RefinanceBlockData}
                   onChange={(data) => updateBlockData(block.id, data)}
+                  calculatedRefinancePercentage={calculatedRefinancePercentage}
                 />
               )}
               {block.type === "rent" && (
@@ -323,7 +358,11 @@ export default function Build() {
           </div>
         ))}
       </div>
-      <LineGraph data={graphData} />
+      <LineGraph
+        data={graphData}
+        selectedYears={selectedYears}
+        onYearsChange={setSelectedYears}
+      />
     </div>
   );
 }

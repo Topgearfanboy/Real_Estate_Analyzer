@@ -8,6 +8,7 @@ interface CurrencyOrPercentageFieldProps {
   onChange: (value: string) => void;
   onTypeChange: (type: "$" | "%") => void;
   width?: string;
+  disabled?: boolean;
 }
 
 export function CurrencyOrPercentageField({
@@ -16,7 +17,41 @@ export function CurrencyOrPercentageField({
   onChange,
   onTypeChange,
   width = "w-24",
+  disabled = false,
 }: CurrencyOrPercentageFieldProps) {
+  if (disabled) {
+    return (
+      <div className="flex border border-border rounded-lg overflow-hidden bg-bg-muted justify-between pointer-events-none opacity-60">
+        {type === "$" ? (
+          <div className={width}>
+            <CurrencyField
+              value={value}
+              onChange={() => {}}
+              fullWidth={true}
+              variant="combined"
+            />
+          </div>
+        ) : (
+          <div className={width}>
+            <PercentageField
+              value={value}
+              onChange={() => {}}
+              fullWidth={true}
+              variant="combined"
+            />
+          </div>
+        )}
+        <div className="border-l border-border pr-3">
+          <CurrencyTypeSelect
+            value={type}
+            onChange={() => {}}
+            variant="combined"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex border border-border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary justify-between">
       {type === "$" ? (

@@ -19,9 +19,7 @@ export function handleVacancyTypeChange(
   } else if (data.vacancyType === "$" && newType === "%") {
     // Converting from $ to %: (vacancy / rent) * 100
     convertedVacancy =
-      rentNum > 0
-        ? ((vacancyNum / rentNum) * 100).toFixed(2)
-        : data.vacancy;
+      rentNum > 0 ? ((vacancyNum / rentNum) * 100).toFixed(2) : data.vacancy;
   } else {
     convertedVacancy = data.vacancy;
   }
@@ -92,5 +90,37 @@ export function handleMaintenanceTypeChange(
     ...data,
     maintenanceType: newType,
     maintenance: convertedMaintenance,
+  });
+}
+
+export function handleAnnualRentIncreaseTypeChange(
+  data: RentBlockData,
+  onChange: (data: RentBlockData) => void,
+  newType: "$" | "%",
+) {
+  const rentNum = parseFloat(data.monthlyRent.replace(/[^0-9.]/g, "")) || 0;
+  const annualRentIncreaseNum = parseFloat(data.annualRentIncrease || "0") || 0;
+  const currentType = data.annualRentIncreaseType || "%";
+
+  let convertedAnnualRentIncrease: string;
+
+  if (currentType === "%" && newType === "$") {
+    convertedAnnualRentIncrease =
+      rentNum > 0
+        ? Math.round((annualRentIncreaseNum / 100) * rentNum).toString()
+        : data.annualRentIncrease || "0";
+  } else if (currentType === "$" && newType === "%") {
+    convertedAnnualRentIncrease =
+      rentNum > 0
+        ? ((annualRentIncreaseNum / rentNum) * 100).toFixed(2)
+        : data.annualRentIncrease || "0";
+  } else {
+    convertedAnnualRentIncrease = data.annualRentIncrease || "0";
+  }
+
+  onChange({
+    ...data,
+    annualRentIncreaseType: newType,
+    annualRentIncrease: convertedAnnualRentIncrease,
   });
 }

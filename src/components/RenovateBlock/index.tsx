@@ -12,15 +12,22 @@ import {
   updateMonthlyCost,
   calculateTotalCost,
   calculateTotalDays,
-  calculateAverageCostPerItem,
+  calculateTotalRenovationCost,
 } from "./helpers";
 
 interface RenovateBlockProps {
   data: RenovateBlockData;
   onChange: (data: RenovateBlockData) => void;
+  monthlyPayment?: number;
+  loanOverlapMonths?: number;
 }
 
-export function RenovateBlock({ data, onChange }: RenovateBlockProps) {
+export function RenovateBlock({
+  data,
+  onChange,
+  monthlyPayment,
+  loanOverlapMonths,
+}: RenovateBlockProps) {
   const [monthlyCostExpanded, setMonthlyCostExpanded] = useState(false);
   const [renovationSummaryExpanded, setRenovationSummaryExpanded] =
     useState(false);
@@ -198,29 +205,43 @@ export function RenovateBlock({ data, onChange }: RenovateBlockProps) {
         <div className="space-y-2">
           {(() => {
             const totalCost = calculateTotalCost(data.items);
-            const itemCount = data.items.length;
+            const totalRenovationCost = calculateTotalRenovationCost(
+              data.items,
+              data.monthlyCostToOwn.utilities,
+              data.timeToRenovate,
+              monthlyPayment,
+              loanOverlapMonths,
+            );
             const totalDays = calculateTotalDays(data.timeToRenovate);
 
             return (
               <>
                 <AnalysisItem
-                  label="Total Renovation Items"
-                  value={itemCount.toString()}
+                  label="Renovation Items Cost"
+                  value={totalCost > 0 ? `$${totalCost.toLocaleString()}` : "-"}
+                />
+                <AnalysisItem
+                  label="Utilities During Renovation"
+                  value={
+                    totalRenovationCost > totalCost
+                      ? `$${(totalRenovationCost - totalCost).toLocaleString()}`
+                      : "-"
+                  }
                 />
                 <AnalysisItem
                   label="Total Renovation Cost"
-                  value={totalCost > 0 ? `$${totalCost.toLocaleString()}` : "-"}
+                  value={
+                    totalRenovationCost > 0
+                      ? `$${totalRenovationCost.toLocaleString()}`
+                      : "-"
+                  }
+                  highlight
                 />
                 <AnalysisItem
                   label="Estimated Timeline"
                   value={
                     totalDays > 0 ? `${Math.round(totalDays / 30)} months` : "-"
                   }
-                />
-                <AnalysisItem
-                  label="Avg Cost Per Item"
-                  value={calculateAverageCostPerItem(totalCost, itemCount)}
-                  highlight
                 />
               </>
             );

@@ -13,10 +13,12 @@ const testData: BuyBlockData = {
   closingCostsType: "%",
   propertyTaxes: "1.2",
   propertyTaxesType: "%",
+  annualHoa: "0",
   homeownersInsurance: "1200",
   homeownersInsuranceType: "$",
   loanTerm: "15",
   customLoanTerm: "",
+  loanTermYears: 15,
   interestOnlyOption: true,
   loanAnalysis: {
     incomeNeeded: "85000",

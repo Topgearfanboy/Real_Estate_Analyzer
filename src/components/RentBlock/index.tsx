@@ -5,6 +5,7 @@ import {
   handleVacancyTypeChange,
   handleManagementTypeChange,
   handleMaintenanceTypeChange,
+  handleAnnualRentIncreaseTypeChange,
 } from "./helpers";
 
 interface RentBlockProps {
@@ -17,7 +18,16 @@ export function RentBlock({ data, onChange }: RentBlockProps) {
     field: K,
     value: RentBlockData[K],
   ) => {
-    onChange({ ...data, [field]: value });
+    const updatedData = { ...data, [field]: value };
+
+    // Calculate durationMonths when time fields change
+    if (field === "timeRentedMonths" || field === "timeRentedYears") {
+      const months = parseInt(updatedData.timeRentedMonths) || 0;
+      const years = parseInt(updatedData.timeRentedYears) || 0;
+      updatedData.durationMonths = months + years * 12;
+    }
+
+    onChange(updatedData);
   };
 
   return (
@@ -56,7 +66,7 @@ export function RentBlock({ data, onChange }: RentBlockProps) {
               onChange={(e) => updateField("timeRentedYears", e.target.value)}
               className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-bg"
             >
-              {Array.from({ length: 21 }, (_, i) => (
+              {Array.from({ length: 31 }, (_, i) => (
                 <option key={i} value={i.toString()}>
                   {i}
                 </option>
@@ -106,6 +116,21 @@ export function RentBlock({ data, onChange }: RentBlockProps) {
             onChange={(value) => updateField("maintenance", value)}
             onTypeChange={(type) =>
               handleMaintenanceTypeChange(data, onChange, type)
+            }
+          />
+        </div>
+
+        {/* Annual Rent Increase */}
+        <div>
+          <label className="block text-sm font-medium text-text-muted mb-1">
+            Annual Rent Increase
+          </label>
+          <CurrencyOrPercentageField
+            value={data.annualRentIncrease || "0"}
+            type={data.annualRentIncreaseType || "%"}
+            onChange={(value) => updateField("annualRentIncrease", value)}
+            onTypeChange={(type) =>
+              handleAnnualRentIncreaseTypeChange(data, onChange, type)
             }
           />
         </div>
