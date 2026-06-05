@@ -54,15 +54,20 @@ export function calculateKeyMetrics(
   // ROI: (Total Profit / Total Investment) * 100
   const roi = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
 
-  // Cash on Cash Return: (Average Annual Cash Flow / Total Cash Invested) * 100
-  // Calculate average monthly cash flow from the first year (12 months)
-  const firstYearMonths = graphData.slice(0, Math.min(12, graphData.length));
-  const totalFirstYearCashFlow = firstYearMonths.reduce(
+  // Cash on Cash Return: (Stabilized Annual Cash Flow / Total Cash Invested) * 100
+  // Use the last 12 months to get stabilized cash flow (after renovation, etc.)
+  const stabilizedMonths = graphData.slice(
+    Math.max(0, graphData.length - 12),
+    graphData.length,
+  );
+  const totalStabilizedCashFlow = stabilizedMonths.reduce(
     (sum, point) => sum + point.monthlyNet,
     0,
   );
   const averageMonthlyCashFlow =
-    totalFirstYearCashFlow / firstYearMonths.length;
+    stabilizedMonths.length > 0
+      ? totalStabilizedCashFlow / stabilizedMonths.length
+      : 0;
   const annualCashFlow = averageMonthlyCashFlow * 12;
   const cashOnCashReturn =
     totalInvestment > 0 ? (annualCashFlow / totalInvestment) * 100 : 0;
@@ -102,9 +107,8 @@ export function calculateKeyMetrics(
       : 0;
 
   // Net Operating Income (NOI): Annual rental income minus operating expenses
-  // Using the average monthly net cash flow from the first year
-  const averageMonthlyNet = totalFirstYearCashFlow / firstYearMonths.length;
-  const netOperatingIncome = averageMonthlyNet * 12;
+  // Using the stabilized monthly net cash flow (last 12 months)
+  const netOperatingIncome = annualCashFlow;
 
   // Cap Rate: (NOI / Property Value) * 100
   // Using the initial property value (equity + loan balance at start)

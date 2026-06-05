@@ -1,84 +1,214 @@
+"use client";
+
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import type { Property } from "@/types";
+import {
+  getProperties,
+  createNewProperty,
+  saveProperty,
+} from "@/utils/propertyStorage";
 
 export default function Home() {
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [showNewPropertyForm, setShowNewPropertyForm] = useState(false);
+  const [newPropertyName, setNewPropertyName] = useState("");
+  const [newPropertyAddress, setNewPropertyAddress] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadProperties = () => {
+      const loaded = getProperties();
+      setProperties(loaded);
+      setIsLoading(false);
+    };
+
+    loadProperties();
+  }, []);
+
+  const handleAddProperty = () => {
+    if (!newPropertyName.trim() || !newPropertyAddress.trim()) {
+      alert("Please enter both property name and address");
+      return;
+    }
+
+    const newProperty = createNewProperty(newPropertyName, newPropertyAddress);
+    saveProperty(newProperty);
+    setProperties([...properties, newProperty]);
+    setNewPropertyName("");
+    setNewPropertyAddress("");
+    setShowNewPropertyForm(false);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <h1 className="text-3xl font-bold text-text mb-8">Dashboard</h1>
+        <div className="text-text-muted">Loading properties...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold text-text mb-8">Dashboard</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link
-          href="/build"
-          className="bg-white rounded-xl shadow-sm border border-border p-6 hover:shadow-md transition-shadow"
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-text mb-2">Dashboard</h1>
+          <p className="text-text-muted">Manage your property investments</p>
+        </div>
+        <button
+          onClick={() => setShowNewPropertyForm(!showNewPropertyForm)}
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium transition-colors flex items-center gap-2 shadow-md"
         >
-          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-            <svg
-              className="w-6 h-6 text-blue-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-text mb-2">Build</h2>
-          <p className="text-text-muted">
-            Create and manage your property investment blocks
-          </p>
-        </Link>
-
-        <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-            <svg
-              className="w-6 h-6 text-green-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-text mb-2">Reports</h2>
-          <p className="text-text-muted">
-            View analysis and performance reports
-          </p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-            <svg
-              className="w-6 h-6 text-purple-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-text mb-2">Settings</h2>
-          <p className="text-text-muted">Configure application preferences</p>
-        </div>
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          Add Property
+        </button>
       </div>
+
+      {showNewPropertyForm && (
+        <div className="mb-8 bg-white rounded-xl shadow-sm border border-border p-6">
+          <h2 className="text-xl font-semibold text-text mb-4">New Property</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-text mb-2">
+                Property Name
+              </label>
+              <input
+                type="text"
+                value={newPropertyName}
+                onChange={(e) => setNewPropertyName(e.target.value)}
+                placeholder="e.g., Downtown Apartment"
+                className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text mb-2">
+                Address
+              </label>
+              <input
+                type="text"
+                value={newPropertyAddress}
+                onChange={(e) => setNewPropertyAddress(e.target.value)}
+                placeholder="e.g., 123 Main St, City, State"
+                className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleAddProperty}
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium transition-colors"
+              >
+                Create Property
+              </button>
+              <button
+                onClick={() => {
+                  setShowNewPropertyForm(false);
+                  setNewPropertyName("");
+                  setNewPropertyAddress("");
+                }}
+                className="px-4 py-2 bg-gray-100 text-text rounded-lg hover:bg-gray-200 font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {properties.length === 0 ? (
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-border/60 p-12 text-center">
+          <div className="w-20 h-20 mx-auto bg-white rounded-2xl shadow-sm flex items-center justify-center mb-6">
+            <svg
+              className="w-10 h-10 text-text-muted/50"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9m-9 5h4"
+              />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-text mb-2">
+            No properties yet
+          </h3>
+          <p className="text-text-muted max-w-md mx-auto mb-6">
+            Create your first property to start analyzing your real estate
+            investments.
+          </p>
+          <button
+            onClick={() => setShowNewPropertyForm(true)}
+            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark font-medium transition-colors inline-flex items-center gap-2"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            Create First Property
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {properties.map((property) => (
+            <Link
+              key={property.id}
+              href={`/build/${property.id}`}
+              className="bg-white rounded-xl shadow-sm border border-border p-6 hover:shadow-lg hover:border-primary/50 transition-all group"
+            >
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
+                <svg
+                  className="w-6 h-6 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9m-9 5h4"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold text-text mb-1 group-hover:text-primary transition-colors">
+                {property.name}
+              </h2>
+              <p className="text-sm text-text-muted mb-3">{property.address}</p>
+              <div className="flex items-center justify-between pt-3 border-t border-border">
+                <span className="text-xs text-text-muted">
+                  {property.blocks.length} block
+                  {property.blocks.length !== 1 ? "s" : ""}
+                </span>
+                <span className="text-xs font-medium text-primary">View →</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

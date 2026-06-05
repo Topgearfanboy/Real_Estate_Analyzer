@@ -113,3 +113,13 @@ export interface ProjectSettings {
   estimatedHomeAppreciationRate: number;
   purchaseDate: string;
 }
+
+export interface Property {
+  id: string;
+  name: string;
+  address: string;
+  blocks: Block[];
+  projectSettings: ProjectSettings;
+  createdAt: string;
+  updatedAt: string;
+}
