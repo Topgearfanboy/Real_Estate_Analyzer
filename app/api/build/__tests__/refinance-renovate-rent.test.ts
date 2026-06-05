@@ -60,6 +60,7 @@ describe("Integration Test - Buy + Renovate + Rent + Refinance", () => {
             },
             deferInterestPayments: false,
           },
+          arv: "350000",
         },
       },
       {
@@ -130,7 +131,6 @@ describe("Integration Test - Buy + Renovate + Rent + Refinance", () => {
 
     // Verify graph data is generated
     expect(graphData.length).toBeGreaterThan(0);
-    expect(graphData[0].date).toBe("2024-01");
     expect(graphData[0].investedCapital).toBeGreaterThanOrEqual(45000); // 20% of 225,000 + ongoing expenses
     expect(graphData[0].remainingLoanBalance).toBeCloseTo(179821, 0); // 225,000 - 20% - 3% closing costs
 
@@ -166,5 +166,17 @@ describe("Integration Test - Buy + Renovate + Rent + Refinance", () => {
     expect(cashOnHandAfterRefinance).toBeLessThanOrEqual(
       cashOnHandBeforeRefinance,
     );
+
+    // Verify ARV updates property value after renovation completes
+    // Renovation duration is 14 months (2 months + 1 year)
+    const renovationEndMonth = 14;
+    const equityAfterRenovation = graphData[renovationEndMonth].equity;
+    const equityBeforeRenovation = graphData[renovationEndMonth - 1].equity;
+
+    console.log("Equity before renovation ends:", equityBeforeRenovation);
+    console.log("Equity after renovation ends:", equityAfterRenovation);
+
+    // Equity should increase significantly after ARV is applied (property value jumps to $350,000)
+    expect(equityAfterRenovation).toBeGreaterThan(equityBeforeRenovation);
   });
 });

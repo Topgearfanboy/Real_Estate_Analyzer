@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Block } from "@/types";
+import { Block, ProjectSettings } from "@/types";
 import { calculateTimeline } from "./helpers/timeline";
 import { getLoanInfo } from "./helpers/loanInfo";
 import { getLoanOverlapMonths } from "./helpers/loanOverlap";
@@ -8,14 +8,16 @@ import { calculateGraphData } from "./helpers/graph";
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const blocks: Block[] = body.blocksJson ? JSON.parse(body.blocksJson) : [];
-  const years: number = body.years || 30; // Default to 30 years if not specified
-  const cashStrategy: "profit" | "paydown" = body.cashStrategy || "profit";
-  const idealCashHoldingBalance: number = body.idealCashHoldingBalance || 0;
-  const estimatedHomeAppreciationRate: number =
-    body.estimatedHomeAppreciationRate || 0;
+  const projectSettings: ProjectSettings = body.projectSettings || {
+    years: 30,
+    cashStrategy: "profit",
+    idealCashHoldingBalance: 0,
+    estimatedHomeAppreciationRate: 0,
+    purchaseDate: new Date().toISOString().split("T")[0],
+  };
 
   // Calculate timeline
-  const timeline = calculateTimeline(blocks);
+  const timeline = calculateTimeline(blocks, projectSettings.purchaseDate);
 
   // Calculate loan info
   const { monthlyPayment, loanEndDate, loanStartIndex } = getLoanInfo(
@@ -39,10 +41,11 @@ export async function POST(request: NextRequest) {
   // Calculate graph data based on blocks and years
   const graphData = calculateGraphData(
     blocks,
-    years,
-    cashStrategy,
-    idealCashHoldingBalance,
-    estimatedHomeAppreciationRate,
+    projectSettings.years,
+    projectSettings.cashStrategy,
+    projectSettings.idealCashHoldingBalance,
+    projectSettings.estimatedHomeAppreciationRate,
+    projectSettings.purchaseDate,
   );
 
   const response = {
@@ -85,7 +88,7 @@ export async function POST(request: NextRequest) {
       const { calculateLoanBalanceOverTime } =
         await import("./helpers/loanBalance");
       const { calculateTimeline } = await import("./helpers/timeline");
-      const timeline = calculateTimeline(blocks);
+      const timeline = calculateTimeline(blocks, projectSettings.purchaseDate);
       const refinanceIndex = timeline.findIndex((t) => t.type === "refinance");
 
       let monthsBeforeRefinance = 0;

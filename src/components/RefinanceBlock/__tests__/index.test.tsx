@@ -50,28 +50,32 @@ describe("RefinanceBlock", () => {
       expect(screen.getByText("Cash Out")).toBeInTheDocument();
     });
 
-    it("renders estimated value field", () => {
+    it("renders estimated value field with formatted value", () => {
       const data = createMockData();
       render(<RefinanceBlock data={data} onChange={mockOnChange} />);
       expect(screen.getByText("Estimated Value")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("$400,000")).toBeInTheDocument();
     });
 
-    it("renders interest rate field", () => {
+    it("renders interest rate field with formatted value", () => {
       const data = createMockData();
       render(<RefinanceBlock data={data} onChange={mockOnChange} />);
       expect(screen.getByText("Interest Rate")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("6.50%")).toBeInTheDocument();
     });
 
-    it("renders financed amount field", () => {
+    it("renders financed amount field with formatted value", () => {
       const data = createMockData();
       render(<RefinanceBlock data={data} onChange={mockOnChange} />);
       expect(screen.getByText("Financed Amount")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("$320,000")).toBeInTheDocument();
     });
 
-    it("renders closing costs field", () => {
+    it("renders closing costs field with formatted value", () => {
       const data = createMockData();
       render(<RefinanceBlock data={data} onChange={mockOnChange} />);
       expect(screen.getByText("Closing Costs")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("3.00%")).toBeInTheDocument();
     });
 
     it("renders loan term button group", () => {
@@ -80,16 +84,18 @@ describe("RefinanceBlock", () => {
       expect(screen.getByText("Loan Term")).toBeInTheDocument();
     });
 
-    it("renders property taxes field", () => {
+    it("renders property taxes field with formatted value", () => {
       const data = createMockData();
       render(<RefinanceBlock data={data} onChange={mockOnChange} />);
       expect(screen.getByText("Property Taxes (Annual)")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("$4,000")).toBeInTheDocument();
     });
 
-    it("renders insurance field", () => {
+    it("renders insurance field with formatted value", () => {
       const data = createMockData();
       render(<RefinanceBlock data={data} onChange={mockOnChange} />);
       expect(screen.getByText("Insurance (Annual)")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("$1,200")).toBeInTheDocument();
     });
 
     it("renders interest only checkbox", () => {
@@ -98,10 +104,10 @@ describe("RefinanceBlock", () => {
       expect(screen.getByText("Interest Only Loan")).toBeInTheDocument();
     });
 
-    it("renders refinance summary section", () => {
+    it("renders monthly payment section", () => {
       const data = createMockData();
       render(<RefinanceBlock data={data} onChange={mockOnChange} />);
-      expect(screen.getByText("Refinance Summary")).toBeInTheDocument();
+      expect(screen.getByText("Monthly Payment")).toBeInTheDocument();
     });
 
     it("renders remaining equity section", () => {
@@ -202,33 +208,24 @@ describe("RefinanceBlock", () => {
     });
   });
 
-  describe("Refinance Summary", () => {
-    it("displays monthly payment", () => {
-      const data = createMockData({
-        cost: "320000",
-        interestRate: "6.5",
-        loanTerm: "30",
-        propertyTaxes: "4000",
-        propertyTaxesType: "$",
-        homeownersInsurance: "1200",
-        homeownersInsuranceType: "$",
-      });
+  describe("Remaining Equity", () => {
+    it("displays remaining equity section", () => {
+      const data = createMockData();
       render(<RefinanceBlock data={data} onChange={mockOnChange} />);
-
-      expect(screen.getByText("Monthly Payment")).toBeInTheDocument();
+      expect(screen.getByText("Remaining Equity")).toBeInTheDocument();
     });
 
-    it("toggles refinance summary details on click", () => {
+    it("toggles remaining equity details on click", () => {
       const data = createMockData();
       render(<RefinanceBlock data={data} onChange={mockOnChange} />);
 
       const toggleButton = screen
-        .getByText("Refinance Summary")
+        .getByText("Remaining Equity")
         .closest("button");
       fireEvent.click(toggleButton!);
 
       // After clicking, the details should be visible
-      expect(screen.getByText("Purchase Price")).toBeInTheDocument();
+      expect(screen.getByText("Amount ($)")).toBeInTheDocument();
     });
   });
 
@@ -381,10 +378,10 @@ describe("RefinanceBlock", () => {
       });
       render(<RefinanceBlock data={data} onChange={mockOnChange} />);
 
-      // Loan: $666.67 + Taxes: ($240,000 * 0.015 / 12) = $300 = $966.67
+      // Loan: $666.67 + Taxes: ($300,000 * 0.015 / 12) = $375 = $1,041.67
       const monthlyPaymentElement =
         screen.getByText("Monthly Payment").nextElementSibling;
-      expect(monthlyPaymentElement?.textContent).toContain("$966.67");
+      expect(monthlyPaymentElement?.textContent).toContain("$1,041.67");
     });
 
     it("includes insurance in monthly payment", () => {

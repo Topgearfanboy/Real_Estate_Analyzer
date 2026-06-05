@@ -75,6 +75,14 @@ export const updateTimeToRenovate = (
   });
 };
 
+export const updateArv = (
+  data: RenovateBlockData,
+  onChange: (data: RenovateBlockData) => void,
+  value: string,
+) => {
+  onChange({ ...data, arv: value });
+};
+
 // Calculation helpers for analysis
 export const calculateTotalCost = (items: RenovationItem[]): number => {
   return items.reduce((sum, item) => {

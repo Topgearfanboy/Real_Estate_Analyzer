@@ -7,9 +7,12 @@ export interface TimelineEntry {
 }
 
 // Calculate timeline for all blocks to determine loan active status
-export function calculateTimeline(blocks: Block[]): TimelineEntry[] {
+export function calculateTimeline(
+  blocks: Block[],
+  purchaseDate: string = new Date().toISOString().split("T")[0],
+): TimelineEntry[] {
   const timeline: TimelineEntry[] = [];
-  let currentDate = new Date(2024, 0, 1); // Start from Jan 2024
+  let currentDate = new Date(purchaseDate); // Start from purchase date
 
   blocks.forEach((block) => {
     let durationMonths = 0;

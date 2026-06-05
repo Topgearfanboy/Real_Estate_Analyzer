@@ -5,6 +5,7 @@ import type {
   Block,
   BlockType,
   BuyBlockData,
+  ProjectSettings,
   RefinanceBlockData,
   RenovateBlockData,
   RentBlockData,
@@ -44,6 +45,30 @@ export default function Build() {
   );
   const [estimatedHomeAppreciationRate, setEstimatedHomeAppreciationRate] =
     useState("3");
+  const [purchaseDate, setPurchaseDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [metrics, setMetrics] = useState<{
+    roi: number;
+    cashOnCashReturn: number;
+    timeToPayOffLoan: number | null;
+    totalProfit: number;
+    netPresentValue: number;
+    annualizedRoi: number;
+    capRate: number;
+    netOperatingIncome: number;
+    totalRoi: number;
+  }>({
+    roi: 0,
+    cashOnCashReturn: 0,
+    timeToPayOffLoan: null,
+    totalProfit: 0,
+    netPresentValue: 0,
+    annualizedRoi: 0,
+    capRate: 0,
+    netOperatingIncome: 0,
+    totalRoi: 0,
+  });
 
   const hasBuyBlock = blocks.some((b) => b.type === "buy");
   const hasSellBlock = blocks.some((b) => b.type === "sell");
@@ -102,16 +127,21 @@ export default function Build() {
   useEffect(() => {
     const syncBlocks = async () => {
       try {
+        const projectSettings: ProjectSettings = {
+          years: selectedYears,
+          cashStrategy,
+          idealCashHoldingBalance: parseFloat(idealCashHoldingBalance) || 0,
+          estimatedHomeAppreciationRate:
+            parseFloat(estimatedHomeAppreciationRate) || 0,
+          purchaseDate,
+        };
+
         const response = await fetch("/api/build", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             blocksJson: JSON.stringify(blocks),
-            years: selectedYears,
-            cashStrategy,
-            idealCashHoldingBalance: parseFloat(idealCashHoldingBalance) || 0,
-            estimatedHomeAppreciationRate:
-              parseFloat(estimatedHomeAppreciationRate) || 0,
+            projectSettings,
           }),
         });
         const result = await response.json();
@@ -189,6 +219,49 @@ export default function Build() {
     cashStrategy,
     idealCashHoldingBalance,
     estimatedHomeAppreciationRate,
+    purchaseDate,
+  ]);
+
+  // Calculate key metrics on every change
+  useEffect(() => {
+    const calculateMetrics = async () => {
+      try {
+        const projectSettings: ProjectSettings = {
+          years: selectedYears,
+          cashStrategy,
+          idealCashHoldingBalance: parseFloat(idealCashHoldingBalance) || 0,
+          estimatedHomeAppreciationRate:
+            parseFloat(estimatedHomeAppreciationRate) || 0,
+          purchaseDate,
+        };
+
+        const response = await fetch("/api/metrics", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            blocksJson: JSON.stringify(blocks),
+            projectSettings,
+          }),
+        });
+        const result = await response.json();
+        if (result.metrics) {
+          setMetrics(result.metrics);
+        }
+      } catch (error) {
+        console.error("Failed to calculate metrics:", error);
+      }
+    };
+
+    if (blocks.length > 0) {
+      void calculateMetrics();
+    }
+  }, [
+    blocks,
+    selectedYears,
+    cashStrategy,
+    idealCashHoldingBalance,
+    estimatedHomeAppreciationRate,
+    purchaseDate,
   ]);
 
   return (
@@ -207,70 +280,83 @@ export default function Build() {
             <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">
               Project Settings
             </h3>
-            <div className="flex items-center gap-2 mb-3">
-              <label className="text-xs text-text-muted whitespace-nowrap">
-                Ideal Cash Holding Balance
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">
-                  $
-                </span>
-                <input
-                  type="number"
-                  value={idealCashHoldingBalance}
-                  onChange={(e) => setIdealCashHoldingBalance(e.target.value)}
-                  className="w-32 pl-7 pr-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="10000"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mb-3">
-              <label className="text-xs text-text-muted whitespace-nowrap">
-                Est. Home Appreciation Rate
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  value={estimatedHomeAppreciationRate}
-                  onChange={(e) =>
-                    setEstimatedHomeAppreciationRate(e.target.value)
-                  }
-                  className="w-20 pl-3 pr-8 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="3"
-                  step="0.1"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">
-                  %
-                </span>
-              </div>
-            </div>
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-text-muted whitespace-nowrap">
+                  Cash Balance
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    value={idealCashHoldingBalance}
+                    onChange={(e) => setIdealCashHoldingBalance(e.target.value)}
+                    className="w-32 pl-7 pr-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="10000"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-text-muted whitespace-nowrap">
+                  Appreciation
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={estimatedHomeAppreciationRate}
+                    onChange={(e) =>
+                      setEstimatedHomeAppreciationRate(e.target.value)
+                    }
+                    className="w-20 pl-3 pr-8 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="3"
+                    step="0.1"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">
+                    %
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-text-muted whitespace-nowrap">
+                  Purchase Date
+                </label>
                 <input
-                  type="radio"
-                  name="cashStrategy"
-                  value="profit"
-                  checked={cashStrategy === "profit"}
-                  onChange={(e) =>
-                    setCashStrategy(e.target.value as "profit" | "paydown")
-                  }
-                  className="w-4 h-4 text-primary focus:ring-primary"
+                  type="date"
+                  value={purchaseDate}
+                  onChange={(e) => setPurchaseDate(e.target.value)}
+                  className="w-36 pl-3 pr-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <span className="text-xs text-text">Profit</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="cashStrategy"
-                  value="paydown"
-                  checked={cashStrategy === "paydown"}
-                  onChange={(e) =>
-                    setCashStrategy(e.target.value as "profit" | "paydown")
-                  }
-                  className="w-4 h-4 text-primary focus:ring-primary"
-                />
-                <span className="text-xs text-text">Paydown Loan</span>
-              </label>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="cashStrategy"
+                    value="profit"
+                    checked={cashStrategy === "profit"}
+                    onChange={(e) =>
+                      setCashStrategy(e.target.value as "profit" | "paydown")
+                    }
+                    className="w-4 h-4 text-primary focus:ring-primary"
+                  />
+                  <span className="text-xs text-text">Profit</span>
+                </label>
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="cashStrategy"
+                    value="paydown"
+                    checked={cashStrategy === "paydown"}
+                    onChange={(e) =>
+                      setCashStrategy(e.target.value as "profit" | "paydown")
+                    }
+                    className="w-4 h-4 text-primary focus:ring-primary"
+                  />
+                  <span className="text-xs text-text">Paydown</span>
+                </label>
+              </div>
             </div>
           </div>
           <div className="relative">
@@ -485,11 +571,104 @@ export default function Build() {
           </div>
         ))}
       </div>
-      <LineGraph
-        data={graphData}
-        selectedYears={selectedYears}
-        onYearsChange={setSelectedYears}
-      />
+      <div className="flex gap-4 mt-6">
+        <div className="w-80 bg-white rounded-xl shadow-sm border border-border p-4 flex-shrink-0">
+          <h3 className="text-lg font-semibold text-text mb-4">Key Metrics</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
+                ROI
+              </p>
+              <p className="text-2xl font-bold text-text">
+                {metrics.roi.toFixed(2)}%
+              </p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
+                Annualized ROI
+              </p>
+              <p className="text-2xl font-bold text-text">
+                {metrics.annualizedRoi.toFixed(2)}%
+              </p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
+                Cash on Cash Return
+              </p>
+              <p className="text-2xl font-bold text-text">
+                {metrics.cashOnCashReturn.toFixed(2)}%
+              </p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
+                Cap Rate
+              </p>
+              <p className="text-2xl font-bold text-text">
+                {metrics.capRate.toFixed(2)}%
+              </p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
+                NOI
+              </p>
+              <p className="text-2xl font-bold text-text">
+                $
+                {metrics.netOperatingIncome.toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
+              </p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
+                Total ROI
+              </p>
+              <p className="text-2xl font-bold text-text">
+                {metrics.totalRoi.toFixed(2)}%
+              </p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
+                Time to Pay Off
+              </p>
+              <p className="text-2xl font-bold text-text">
+                {metrics.timeToPayOffLoan !== null
+                  ? `${Math.floor(metrics.timeToPayOffLoan / 12)}y ${metrics.timeToPayOffLoan % 12}m`
+                  : "--"}
+              </p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
+                Total Profit
+              </p>
+              <p className="text-2xl font-bold text-text">
+                $
+                {metrics.totalProfit.toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
+              </p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg col-span-2">
+              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
+                Net Present Value
+              </p>
+              <p className="text-2xl font-bold text-text">
+                $
+                {metrics.netPresentValue.toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+        <LineGraph
+          data={graphData}
+          selectedYears={selectedYears}
+          onYearsChange={setSelectedYears}
+        />
+      </div>
     </div>
   );
 }

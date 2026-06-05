@@ -22,7 +22,14 @@ describe("calculateGraphData", () => {
         },
       },
     ];
-    const result = calculateGraphData(blocks);
+    const result = calculateGraphData(
+      blocks,
+      30,
+      "profit",
+      0,
+      0,
+      "2024-01-01T12:00:00",
+    );
     expect(result).toHaveLength(1);
     expect(result[0].date).toBe("2024-01");
     expect(result[0].investedCapital).toBe(0);
@@ -62,7 +69,14 @@ describe("calculateGraphData", () => {
         },
       },
     ];
-    const result = calculateGraphData(blocks);
+    const result = calculateGraphData(
+      blocks,
+      30,
+      "profit",
+      0,
+      0,
+      "2024-01-01T12:00:00",
+    );
     expect(result.length).toBeGreaterThan(0);
     expect(result[0].date).toBe("2024-01");
     expect(result[0].investedCapital).toBeGreaterThanOrEqual(20000); // downpayment + any initial expenses
@@ -99,7 +113,14 @@ describe("calculateGraphData", () => {
         },
       },
     ];
-    const result = calculateGraphData(blocks, 5); // 5 years
+    const result = calculateGraphData(
+      blocks,
+      5,
+      "profit",
+      0,
+      0,
+      "2024-01-01T12:00:00",
+    ); // 5 years
     expect(result.length).toBeLessThanOrEqual(60); // 5 years * 12 months
   });
 
@@ -134,7 +155,14 @@ describe("calculateGraphData", () => {
         },
       },
     ];
-    const result = calculateGraphData(blocks, 1); // 1 year
+    const result = calculateGraphData(
+      blocks,
+      1,
+      "profit",
+      0,
+      0,
+      "2024-01-01T12:00:00",
+    ); // 1 year
     expect(result[0].date).toBe("2024-01");
     expect(result[11].date).toBe("2024-12");
   });

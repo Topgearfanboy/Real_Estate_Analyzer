@@ -94,7 +94,14 @@ describe("Integration Test - Multiple Rent Blocks", () => {
     ];
 
     // Calculate graph data for 30 years with paydown strategy and $10,000 cash holding balance
-    const graphData = calculateGraphData(blocks, 30, "paydown", 10000);
+    const graphData = calculateGraphData(
+      blocks,
+      30,
+      "paydown",
+      10000,
+      0,
+      "2024-01-01T12:00:00",
+    );
 
     // Verify the graph data has the expected length (30 years * 12 months = 360 months)
     expect(graphData.length).toBe(360);

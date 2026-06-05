@@ -63,6 +63,7 @@ export interface RenovateBlockData extends TimeBasedBlock {
     years: string;
   };
   monthlyCostToOwn: MonthlyCostToOwn;
+  arv: string;
 }
 
 export interface RefinanceBlockData extends FinancingBlock {
@@ -103,4 +104,12 @@ export interface Block {
     | RefinanceBlockData
     | RentBlockData
     | SellBlockData;
+}
+
+export interface ProjectSettings {
+  years: number;
+  cashStrategy: "profit" | "paydown";
+  idealCashHoldingBalance: number;
+  estimatedHomeAppreciationRate: number;
+  purchaseDate: string;
 }

@@ -38,8 +38,8 @@ const CustomTooltip = ({
   data?: GraphDataPoint[];
 }) => {
   if (active && payload && payload.length && label && data) {
-    // Calculate years and months since beginning (2024-01)
-    const startDate = new Date(2024, 0, 1);
+    // Calculate years and months since beginning (use first data point as start)
+    const startDate = new Date(data[0].date + "-01");
     const currentDate = new Date(label + "-01");
     const monthsDiff =
       (currentDate.getFullYear() - startDate.getFullYear()) * 12 +
@@ -93,7 +93,7 @@ export function LineGraph({
   return (
     <div className="w-full h-80 bg-white rounded-xl shadow-sm border border-border p-4 mt-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-text">Cost Analysis</h3>
+        <h3 className="text-lg font-semibold text-text">Financial Analysis</h3>
         {onYearsChange && (
           <div className="flex items-center gap-2">
             <label htmlFor="years-select" className="text-sm text-text-muted">

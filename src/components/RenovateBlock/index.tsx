@@ -10,6 +10,7 @@ import {
   updateUtilities,
   updateTimeToRenovate,
   updateMonthlyCost,
+  updateArv,
   calculateTotalCost,
   calculateTotalDays,
   calculateTotalRenovationCost,
@@ -145,6 +146,17 @@ export function RenovateBlock({
             </select>
           </div>
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-text-muted mb-2">
+          After Repair Value (ARV)
+        </label>
+        <CurrencyField
+          value={data.arv}
+          onChange={(value) => updateArv(data, onChange, value)}
+          placeholder="$0"
+        />
       </div>
 
       <CollapsibleSection

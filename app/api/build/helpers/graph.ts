@@ -9,7 +9,10 @@ import { calculateLoanBalanceOverTime } from "./loanBalance";
 import { calculateTimeline } from "./timeline";
 
 // Helper function to process rent block data
-function processRentBlockData(blocks: Block[]): Array<{
+function processRentBlockData(
+  blocks: Block[],
+  purchaseDate: string,
+): Array<{
   baseMonthlyRent: number;
   vacancy: number;
   management: number;
@@ -25,7 +28,7 @@ function processRentBlockData(blocks: Block[]): Array<{
     return [];
   }
 
-  const timeline = calculateTimeline(blocks);
+  const timeline = calculateTimeline(blocks, purchaseDate);
   const rentBlockDataArray: Array<{
     baseMonthlyRent: number;
     vacancy: number;
@@ -111,10 +114,14 @@ function processRentBlockData(blocks: Block[]): Array<{
 }
 
 // Helper function to process renovate block data
-function processRenovateBlockData(blocks: Block[]): {
+function processRenovateBlockData(
+  blocks: Block[],
+  purchaseDate: string,
+): {
   totalRenovationCost: number;
   renovateStartMonth: number;
   renovateDurationMonths: number;
+  arv: number;
 } | null {
   const renovateBlock = blocks.find((block) => block.type === "renovate");
 
@@ -139,8 +146,11 @@ function processRenovateBlockData(blocks: Block[]): {
   const years = parseInt(renovateData.timeToRenovate.years) || 0;
   const renovateDurationMonths = Math.round(days / 30) + months + years * 12;
 
+  // Extract ARV
+  const arv = parseFloat(renovateData.arv?.replace(/[^0-9.]/g, "") || "0") || 0;
+
   // Find renovate block index in timeline to determine start month
-  const timeline = calculateTimeline(blocks);
+  const timeline = calculateTimeline(blocks, purchaseDate);
   const renovateIndex = timeline.findIndex((t) => t.type === "renovate");
   let renovateStartMonth = 0;
   if (renovateIndex >= 0) {
@@ -157,6 +167,7 @@ function processRenovateBlockData(blocks: Block[]): {
     totalRenovationCost,
     renovateStartMonth,
     renovateDurationMonths,
+    arv,
   };
 }
 
@@ -176,16 +187,17 @@ export function calculateGraphData(
   cashStrategy: "profit" | "paydown" = "profit",
   idealCashHoldingBalance: number = 0,
   estimatedHomeAppreciationRate: number = 0,
+  purchaseDate: string = new Date().toISOString().split("T")[0],
 ): GraphDataPoint[] {
   const buyBlockData = processBuyBlockData(blocks);
-  const rentBlockDataArray = processRentBlockData(blocks);
-  const renovateBlockData = processRenovateBlockData(blocks);
+  const rentBlockDataArray = processRentBlockData(blocks, purchaseDate);
+  const renovateBlockData = processRenovateBlockData(blocks, purchaseDate);
 
   if (!buyBlockData) {
     // Return static data if no buy block
     return [
       {
-        date: "2024-01",
+        date: purchaseDate.slice(0, 7),
         investedCapital: 0,
         cashOnHand: 0,
         equity: 0,
@@ -225,7 +237,7 @@ export function calculateGraphData(
   const refinanceBlock = blocks.find((b) => b.type === "refinance") as
     | Block
     | undefined;
-  const timeline = calculateTimeline(blocks);
+  const timeline = calculateTimeline(blocks, purchaseDate);
   const refinanceIndex = timeline.findIndex((t) => t.type === "refinance");
 
   let loanBalances: number[];
@@ -381,7 +393,7 @@ export function calculateGraphData(
 
   // Generate data for the specified number of years
   const graphData = [];
-  const currentDate = new Date(2024, 0, 1); // Start from Jan 2024
+  const currentDate = new Date(purchaseDate); // Start from purchase date
   const maxMonths = years * 12; // Convert years to months
 
   // Calculate cash on hand over time
@@ -400,6 +412,17 @@ export function calculateGraphData(
     if (i > 0 && estimatedHomeAppreciationRate > 0) {
       const monthlyAppreciationRate = estimatedHomeAppreciationRate / 100 / 12;
       propertyValue *= 1 + monthlyAppreciationRate;
+    }
+
+    // Update property value to ARV after renovation completes
+    if (
+      renovateBlockData &&
+      renovateBlockData.arv > 0 &&
+      i ===
+        renovateBlockData.renovateStartMonth +
+          renovateBlockData.renovateDurationMonths
+    ) {
+      propertyValue = renovateBlockData.arv;
     }
 
     // Calculate cash flow for this month
@@ -427,7 +450,7 @@ export function calculateGraphData(
       if (refinanceBlock && refinanceIndex >= 0 && i >= monthsBeforeRefinance) {
         monthlyCashFlow = -refinanceMonthlyPayment;
 
-        // Handle closing costs for both cash-out and non-cash-out refinances at the refinance point
+        // Handle closing costs and cash-out at the refinance point
         const refinanceData = refinanceBlock.data as RefinanceBlockData;
         if (i === monthsBeforeRefinance) {
           const closingCostsRaw =
@@ -446,6 +469,46 @@ export function calculateGraphData(
             closingCostsAmount = closingCostsRaw;
           }
           monthlyCashFlow -= closingCostsAmount;
+
+          // For cash-out refinancing, add the difference between new loan amount and remaining balance to cash on hand
+          if (refinanceData.cashOut === true) {
+            let remainingBalance = 0;
+            if (monthsBeforeRefinance > 0) {
+              const loanBeforeRefinance = calculateLoanBalanceOverTime(
+                loanAmount,
+                buyBlockData.monthlyRate,
+                buyBlockData.loanTermYears,
+                monthsBeforeRefinance,
+              );
+              remainingBalance =
+                loanBeforeRefinance.balances[
+                  loanBeforeRefinance.balances.length - 1
+                ] || 0;
+            } else {
+              remainingBalance = loanAmount;
+            }
+
+            // Calculate new loan amount
+            let newLoanAmount: number;
+            const costRaw =
+              parseFloat(refinanceData.cost?.replace(/[^0-9.]/g, "") || "0") ||
+              0;
+            if (costRaw > 0) {
+              if (refinanceData.costType === "%") {
+                newLoanAmount = (costRaw / 100) * refinanceEstimatedValue;
+              } else {
+                newLoanAmount = costRaw;
+              }
+            } else {
+              newLoanAmount = remainingBalance;
+            }
+
+            // Add cash-out amount to cash on hand
+            const cashOutAmount = newLoanAmount - remainingBalance;
+            if (cashOutAmount > 0) {
+              monthlyCashFlow += cashOutAmount;
+            }
+          }
         }
       }
     }
@@ -484,18 +547,23 @@ export function calculateGraphData(
     }
 
     // Apply renovation costs during renovation period
-    if (
-      renovateBlockData &&
-      i >= renovateBlockData.renovateStartMonth &&
-      i <
+    if (renovateBlockData && i >= renovateBlockData.renovateStartMonth) {
+      // If duration is 0, apply full cost at start month
+      if (renovateBlockData.renovateDurationMonths === 0) {
+        if (i === renovateBlockData.renovateStartMonth) {
+          monthlyCashFlow -= renovateBlockData.totalRenovationCost;
+        }
+      } else if (
+        i <
         renovateBlockData.renovateStartMonth +
           renovateBlockData.renovateDurationMonths
-    ) {
-      // Spread renovation cost evenly over the renovation period
-      const monthlyRenovationCost =
-        renovateBlockData.totalRenovationCost /
-        renovateBlockData.renovateDurationMonths;
-      monthlyCashFlow -= monthlyRenovationCost;
+      ) {
+        // Spread renovation cost evenly over the renovation period
+        const monthlyRenovationCost =
+          renovateBlockData.totalRenovationCost /
+          renovateBlockData.renovateDurationMonths;
+        monthlyCashFlow -= monthlyRenovationCost;
+      }
     }
 
     // Update cash on hand

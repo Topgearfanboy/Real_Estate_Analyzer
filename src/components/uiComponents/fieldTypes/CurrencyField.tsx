@@ -53,16 +53,10 @@ export function CurrencyField({
     onChange(rawValue);
   }, [inputValue, onChange]);
 
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const cleaned = e.target.value.replace(/[^0-9.,]/g, "");
-      setInputValue(cleaned);
-
-      const rawValue = cleaned.replace(/[^0-9.]/g, "");
-      onChange(rawValue);
-    },
-    [onChange],
-  );
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const cleaned = e.target.value.replace(/[^0-9.,]/g, "");
+    setInputValue(cleaned);
+  }, []);
 
   const labelClasses = size === "sm" ? "text-xs" : "text-sm";
   const inputClasses = size === "sm" ? "py-1.5" : "py-2";

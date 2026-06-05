@@ -47,6 +47,7 @@ export const defaultRenovateData = (): RenovateBlockData => ({
     },
     deferInterestPayments: false,
   },
+  arv: "",
 });
 
 export const defaultRefinanceData = (): RefinanceBlockData => ({
