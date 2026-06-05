@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -24,6 +25,7 @@ interface LineGraphProps {
   data: GraphDataPoint[];
   selectedYears?: number;
   onYearsChange?: (years: number) => void;
+  onHoverIndexChange?: (index: number | null) => void;
 }
 
 const CustomTooltip = ({
@@ -31,12 +33,23 @@ const CustomTooltip = ({
   payload,
   label,
   data,
+  onHoverIndexChange,
 }: {
   active?: boolean;
   payload?: Array<{ name: string; value: number; color: string }>;
   label?: string;
   data?: GraphDataPoint[];
+  onHoverIndexChange?: (index: number | null) => void;
 }) => {
+  useEffect(() => {
+    if (!active) {
+      onHoverIndexChange?.(null);
+    } else if (label && data && data.length > 0) {
+      const index = data.findIndex((d) => d.date === label);
+      onHoverIndexChange?.(index >= 0 ? index : null);
+    }
+  }, [active, label, data, onHoverIndexChange]);
+
   if (active && payload && payload.length && label && data) {
     // Calculate years and months since beginning (use first data point as start)
     const startDate = new Date(data[0].date + "-01");
@@ -79,6 +92,7 @@ export function LineGraph({
   data,
   selectedYears = 30,
   onYearsChange,
+  onHoverIndexChange,
 }: LineGraphProps) {
   if (!data || data.length === 0) {
     return (
@@ -91,7 +105,10 @@ export function LineGraph({
   const yearOptions = [1, 5, 10, 15, 20, 25, 30, 40, 50];
 
   return (
-    <div className="w-full h-80 bg-white rounded-xl shadow-sm border border-border p-4 mt-6">
+    <div
+      className="w-full h-80 bg-white rounded-xl shadow-sm border border-border p-4 mt-6"
+      onMouseLeave={() => onHoverIndexChange?.(null)}
+    >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-text">Financial Analysis</h3>
         {onYearsChange && (
@@ -132,7 +149,14 @@ export function LineGraph({
             tickLine={false}
             tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
           />
-          <Tooltip content={<CustomTooltip data={data} />} />
+          <Tooltip
+            content={
+              <CustomTooltip
+                data={data}
+                onHoverIndexChange={onHoverIndexChange}
+              />
+            }
+          />
           <Legend wrapperStyle={{ fontSize: "12px" }} />
           <Line
             type="monotone"

@@ -19,6 +19,7 @@ import { SellBlock } from "@/components/SellBlock";
 import { createBlock } from "@/defaultData";
 import { blockTypeLabels, blockTypeColors, getBlockDotColor } from "./helpers";
 import { LineGraph } from "@/components/uiComponents/LineGraph";
+import { calculateKeyMetrics } from "@/utils/metrics";
 
 interface GraphDataPoint {
   date: string;
@@ -69,6 +70,26 @@ export default function Build() {
     netOperatingIncome: 0,
     totalRoi: 0,
   });
+
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  // Compute metrics up to hovered index when hovering the graph
+  const displayMetrics =
+    hoveredIndex !== null && graphData.length > 0
+      ? calculateKeyMetrics(graphData.slice(0, hoveredIndex + 1))
+      : metrics;
+
+  const hoveredTimeLabel =
+    hoveredIndex !== null && graphData.length > 0
+      ? (() => {
+          const months = hoveredIndex + 1;
+          const y = Math.floor(months / 12);
+          const m = months % 12;
+          if (y > 0 && m > 0) return `${y}y ${m}m`;
+          if (y > 0) return `${y}y`;
+          return `${m}m`;
+        })()
+      : null;
 
   const hasBuyBlock = blocks.some((b) => b.type === "buy");
   const hasSellBlock = blocks.some((b) => b.type === "sell");
@@ -573,14 +594,21 @@ export default function Build() {
       </div>
       <div className="flex gap-4 mt-6">
         <div className="w-80 bg-white rounded-xl shadow-sm border border-border p-4 flex-shrink-0">
-          <h3 className="text-lg font-semibold text-text mb-4">Key Metrics</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-text">Key Metrics</h3>
+            {hoveredTimeLabel && (
+              <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+                as of {hoveredTimeLabel}
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 bg-gray-50 rounded-lg">
               <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
                 ROI
               </p>
               <p className="text-2xl font-bold text-text">
-                {metrics.roi.toFixed(2)}%
+                {displayMetrics.roi.toFixed(2)}%
               </p>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
@@ -588,7 +616,7 @@ export default function Build() {
                 Annualized ROI
               </p>
               <p className="text-2xl font-bold text-text">
-                {metrics.annualizedRoi.toFixed(2)}%
+                {displayMetrics.annualizedRoi.toFixed(2)}%
               </p>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
@@ -596,7 +624,7 @@ export default function Build() {
                 Cash on Cash Return
               </p>
               <p className="text-2xl font-bold text-text">
-                {metrics.cashOnCashReturn.toFixed(2)}%
+                {displayMetrics.cashOnCashReturn.toFixed(2)}%
               </p>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
@@ -604,7 +632,7 @@ export default function Build() {
                 Cap Rate
               </p>
               <p className="text-2xl font-bold text-text">
-                {metrics.capRate.toFixed(2)}%
+                {displayMetrics.capRate.toFixed(2)}%
               </p>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
@@ -613,7 +641,7 @@ export default function Build() {
               </p>
               <p className="text-2xl font-bold text-text">
                 $
-                {metrics.netOperatingIncome.toLocaleString(undefined, {
+                {displayMetrics.netOperatingIncome.toLocaleString(undefined, {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0,
                 })}
@@ -621,10 +649,14 @@ export default function Build() {
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
               <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
-                Total ROI
+                Net Present Value
               </p>
               <p className="text-2xl font-bold text-text">
-                {metrics.totalRoi.toFixed(2)}%
+                $
+                {displayMetrics.netPresentValue.toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
               </p>
             </div>
             <div className="p-3 bg-gray-50 rounded-lg">
@@ -643,19 +675,7 @@ export default function Build() {
               </p>
               <p className="text-2xl font-bold text-text">
                 $
-                {metrics.totalProfit.toLocaleString(undefined, {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                })}
-              </p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded-lg col-span-2">
-              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
-                Net Present Value
-              </p>
-              <p className="text-2xl font-bold text-text">
-                $
-                {metrics.netPresentValue.toLocaleString(undefined, {
+                {displayMetrics.totalProfit.toLocaleString(undefined, {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0,
                 })}
@@ -667,6 +687,7 @@ export default function Build() {
           data={graphData}
           selectedYears={selectedYears}
           onYearsChange={setSelectedYears}
+          onHoverIndexChange={setHoveredIndex}
         />
       </div>
     </div>
