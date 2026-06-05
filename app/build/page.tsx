@@ -165,6 +165,11 @@ export default function Build() {
             projectSettings,
           }),
         });
+        if (!response.ok) {
+          throw new Error(
+            `API error: ${response.status} ${response.statusText}`,
+          );
+        }
         const result = await response.json();
         console.log("API Response Debug:", result);
         if (result.debug) {
@@ -228,6 +233,9 @@ export default function Build() {
         }
       } catch (error) {
         console.error("Failed to sync blocks:", error);
+        if (error instanceof Error) {
+          console.error("Error details:", error.message);
+        }
       }
     };
 
@@ -264,12 +272,20 @@ export default function Build() {
             projectSettings,
           }),
         });
+        if (!response.ok) {
+          throw new Error(
+            `API error: ${response.status} ${response.statusText}`,
+          );
+        }
         const result = await response.json();
         if (result.metrics) {
           setMetrics(result.metrics);
         }
       } catch (error) {
         console.error("Failed to calculate metrics:", error);
+        if (error instanceof Error) {
+          console.error("Error details:", error.message);
+        }
       }
     };
 

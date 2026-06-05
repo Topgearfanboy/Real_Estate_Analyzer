@@ -223,6 +223,11 @@ export default function BuildProperty() {
             projectSettings,
           }),
         });
+        if (!response.ok) {
+          throw new Error(
+            `API error: ${response.status} ${response.statusText}`,
+          );
+        }
         const result = await response.json();
 
         console.log({
@@ -298,6 +303,9 @@ export default function BuildProperty() {
         }
       } catch (error) {
         console.error("Failed to sync blocks:", error);
+        if (error instanceof Error) {
+          console.error("Error details:", error.message);
+        }
       }
     };
 
@@ -333,6 +341,11 @@ export default function BuildProperty() {
             projectSettings,
           }),
         });
+        if (!response.ok) {
+          throw new Error(
+            `API error: ${response.status} ${response.statusText}`,
+          );
+        }
         const result = await response.json();
         if (result.metrics) {
           console.log({
@@ -351,6 +364,9 @@ export default function BuildProperty() {
         }
       } catch (error) {
         console.error("Failed to calculate metrics:", error);
+        if (error instanceof Error) {
+          console.error("Error details:", error.message);
+        }
       }
     };
 
