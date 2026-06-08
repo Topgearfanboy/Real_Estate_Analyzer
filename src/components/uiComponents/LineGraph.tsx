@@ -96,7 +96,7 @@ export function LineGraph({
 }: LineGraphProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="w-full h-80 bg-white rounded-xl shadow-sm border border-border p-4 mt-6 flex items-center justify-center">
+      <div className="w-full h-80 bg-white rounded-xl shadow-sm border border-border p-4 flex items-center justify-center">
         <p className="text-text-muted">No data available</p>
       </div>
     );
@@ -106,7 +106,7 @@ export function LineGraph({
 
   return (
     <div
-      className="w-full h-80 bg-white rounded-xl shadow-sm border border-border p-4 mt-6"
+      className="w-full h-80 bg-white rounded-xl shadow-sm border border-border p-4"
       onMouseLeave={() => onHoverIndexChange?.(null)}
     >
       <div className="flex items-center justify-between mb-4">

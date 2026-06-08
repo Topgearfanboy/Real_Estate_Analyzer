@@ -107,8 +107,38 @@ export function calculateKeyMetrics(
       : 0;
 
   // Net Operating Income (NOI): Annual rental income minus operating expenses
-  // Using the stabilized monthly net cash flow (last 12 months)
-  const netOperatingIncome = annualCashFlow;
+  // NOI should NOT include mortgage payments (debt service)
+  // We need to add back the mortgage payments from the cash flow to get true NOI
+  // Calculate average monthly mortgage payment from the stabilized period
+  let totalMortgagePayments = 0;
+  let mortgagePaymentMonths = 0;
+
+  for (let i = Math.max(0, graphData.length - 12); i < graphData.length; i++) {
+    const currentPoint = graphData[i];
+    const prevPoint = i > 0 ? graphData[i - 1] : currentPoint;
+
+    // If loan balance decreased, there was a mortgage payment
+    if (
+      prevPoint.remainingLoanBalance > 0 &&
+      currentPoint.remainingLoanBalance >= 0
+    ) {
+      const loanPaydown =
+        prevPoint.remainingLoanBalance - currentPoint.remainingLoanBalance;
+      if (loanPaydown > 0) {
+        // Estimate monthly payment (loan paydown is principal, actual payment includes interest)
+        // We'll use the difference in loan balance as a proxy for payment activity
+        totalMortgagePayments += loanPaydown;
+        mortgagePaymentMonths++;
+      }
+    }
+  }
+
+  // Calculate NOI by adding back mortgage payments to the cash flow
+  const netOperatingIncome =
+    annualCashFlow +
+    (totalMortgagePayments > 0
+      ? (totalMortgagePayments / mortgagePaymentMonths) * 12
+      : 0);
 
   // Cap Rate: (NOI / Property Value) * 100
   // Using the initial property value (equity + loan balance at start)

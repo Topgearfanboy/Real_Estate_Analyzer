@@ -429,26 +429,26 @@ export function calculateGraphData(
     let monthlyCashFlow = 0;
     let monthlyNet = 0; // Rental income - expenses - mortgage
 
+    // Calculate fixed monthly expenses
+    const monthlyPropertyTaxes = propertyTaxes / 12;
+    const monthlyHomeownersInsurance = homeownersInsurance / 12;
+    const monthlyHoa = annualHoa / 12;
+    const monthlyFixedExpenses =
+      monthlyPropertyTaxes + monthlyHomeownersInsurance + monthlyHoa;
+
     // Check if loan is paid off
     const loanPaidOff = loanBalances[i] === 0;
 
     if (loanPaidOff) {
       // After loan is paid off, only deduct ongoing expenses
-      const monthlyPropertyTaxes = propertyTaxes / 12;
-      const monthlyHomeownersInsurance = homeownersInsurance / 12;
-      const monthlyHoa = annualHoa / 12;
-      monthlyCashFlow = -(
-        monthlyPropertyTaxes +
-        monthlyHomeownersInsurance +
-        monthlyHoa
-      );
+      monthlyCashFlow = -monthlyFixedExpenses;
     } else {
-      // Before loan is paid off, deduct monthly payment
-      monthlyCashFlow = -monthlyPayment;
+      // Before loan is paid off, deduct monthly payment and fixed expenses
+      monthlyCashFlow = -monthlyPayment - monthlyFixedExpenses;
 
       // Use refinance monthly payment after refinance point
       if (refinanceBlock && refinanceIndex >= 0 && i >= monthsBeforeRefinance) {
-        monthlyCashFlow = -refinanceMonthlyPayment;
+        monthlyCashFlow = -refinanceMonthlyPayment - monthlyFixedExpenses;
 
         // Handle closing costs and cash-out at the refinance point
         const refinanceData = refinanceBlock.data as RefinanceBlockData;

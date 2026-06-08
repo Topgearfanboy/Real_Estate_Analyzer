@@ -129,8 +129,8 @@ describe("Integration Test - Multiple Rent Blocks", () => {
     // Second rent period starts at month 73 (2030-02)
     const secondRentStart = 73;
     expect(graphData[secondRentStart].date).toBe("2030-02");
-    // Cash on hand should recover
-    expect(graphData[secondRentStart].cashOnHand).toBe(10000);
+    // Cash on hand should recover (but will be slightly less due to property taxes/insurance)
+    expect(graphData[secondRentStart].cashOnHand).toBeCloseTo(9871.59, 0);
     // Monthly net should be positive again
     expect(graphData[secondRentStart].monthlyNet).toBeGreaterThan(0);
 

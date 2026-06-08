@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type {
   Block,
-  BlockType,
   BuyBlockData,
   ProjectSettings,
   RefinanceBlockData,
@@ -18,9 +17,16 @@ import { RenovateBlock } from "@/components/RenovateBlock";
 import { RefinanceBlock } from "@/components/RefinanceBlock";
 import { RentBlock } from "@/components/RentBlock";
 import { SellBlock } from "@/components/SellBlock";
-import { createBlock } from "@/defaultData";
-import { blockTypeLabels, blockTypeColors, getBlockDotColor } from "../helpers";
+import {
+  blockTypeLabels,
+  blockTypeColors,
+  getBlockDotColor,
+} from "@/utils/blockHelpers";
 import { LineGraph } from "@/components/uiComponents/LineGraph";
+import { MetricCard } from "@/components/shared/MetricCard";
+import { ProjectSettingsPanel } from "@/components/BuildPage/ProjectSettingsPanel";
+import { useProjectSettings } from "@/hooks/useProjectSettings";
+import { useBlockManager } from "@/hooks/useBlockManager";
 import { calculateKeyMetrics } from "@/utils/metrics";
 import { getPropertyById, saveProperty } from "@/utils/propertyStorage";
 
@@ -39,24 +45,35 @@ export default function BuildProperty() {
   const propertyId = params.id as string;
 
   const [property, setProperty] = useState<Property | null>(null);
-  const [blocks, setBlocks] = useState<Block[]>([]);
+  const {
+    blocks,
+    setBlocks,
+    addBlock,
+    removeBlock,
+    moveBlock,
+    updateBlockData,
+    hasBuyBlock,
+    hasSellBlock,
+  } = useBlockManager();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [graphData, setGraphData] = useState<GraphDataPoint[]>([]);
-  const [selectedYears, setSelectedYears] = useState(30);
   const [monthlyPayment, setMonthlyPayment] = useState(0);
   const [loanOverlapMonthsMap, setLoanOverlapMonthsMap] = useState<
     Record<number, number>
   >({});
-  const [idealCashHoldingBalance, setIdealCashHoldingBalance] =
-    useState("10000");
-  const [cashStrategy, setCashStrategy] = useState<"profit" | "paydown">(
-    "profit",
-  );
-  const [estimatedHomeAppreciationRate, setEstimatedHomeAppreciationRate] =
-    useState("3");
-  const [purchaseDate, setPurchaseDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
+  const {
+    selectedYears,
+    setSelectedYears,
+    cashStrategy,
+    setCashStrategy,
+    idealCashHoldingBalance,
+    setIdealCashHoldingBalance,
+    estimatedHomeAppreciationRate,
+    setEstimatedHomeAppreciationRate,
+    purchaseDate,
+    setPurchaseDate,
+    getProjectSettings,
+  } = useProjectSettings();
   const [metrics, setMetrics] = useState<{
     roi: number;
     cashOnCashReturn: number;
@@ -105,7 +122,16 @@ export default function BuildProperty() {
     };
 
     loadProperty();
-  }, [propertyId, router]);
+  }, [
+    propertyId,
+    router,
+    setBlocks,
+    setSelectedYears,
+    setCashStrategy,
+    setIdealCashHoldingBalance,
+    setEstimatedHomeAppreciationRate,
+    setPurchaseDate,
+  ]);
 
   const displayMetrics =
     hoveredIndex !== null && graphData.length > 0
@@ -124,72 +150,12 @@ export default function BuildProperty() {
         })()
       : null;
 
-  const hasBuyBlock = blocks.some((b) => b.type === "buy");
-  const hasSellBlock = blocks.some((b) => b.type === "sell");
-  const sellBlockIndex = blocks.findIndex((b) => b.type === "sell");
-
-  const addBlock = (type: BlockType) => {
-    if (type === "buy" && hasBuyBlock) return;
-    if (type === "sell" && hasSellBlock) return;
-
-    const newBlock = createBlock(type);
-
-    if (type === "buy") {
-      setBlocks([newBlock, ...blocks]);
-    } else {
-      let insertIndex = blocks.length;
-      if (hasSellBlock) insertIndex = sellBlockIndex;
-      const newBlocks = [...blocks];
-      newBlocks.splice(insertIndex, 0, newBlock);
-      setBlocks(newBlocks);
-    }
-  };
-
-  const removeBlock = (id: string) => {
-    setBlocks(blocks.filter((b) => b.id !== id));
-  };
-
-  const moveBlock = (index: number, direction: "up" | "down") => {
-    const block = blocks[index];
-    if (block.type === "buy") return;
-    if (block.type === "sell") return;
-
-    if (direction === "up" && index > 0) {
-      if (blocks[index - 1].type === "buy") return;
-      const newBlocks = [...blocks];
-      [newBlocks[index - 1], newBlocks[index]] = [
-        newBlocks[index],
-        newBlocks[index - 1],
-      ];
-      setBlocks(newBlocks);
-    } else if (direction === "down" && index < blocks.length - 1) {
-      if (blocks[index + 1].type === "sell") return;
-      const newBlocks = [...blocks];
-      [newBlocks[index], newBlocks[index + 1]] = [
-        newBlocks[index + 1],
-        newBlocks[index],
-      ];
-      setBlocks(newBlocks);
-    }
-  };
-
-  const updateBlockData = (id: string, data: Block["data"]) => {
-    setBlocks(blocks.map((b) => (b.id === id ? { ...b, data } : b)));
-  };
-
   useEffect(() => {
     if (property) {
       const updatedProperty: Property = {
         ...property,
         blocks,
-        projectSettings: {
-          years: selectedYears,
-          cashStrategy,
-          idealCashHoldingBalance: parseFloat(idealCashHoldingBalance) || 0,
-          estimatedHomeAppreciationRate:
-            parseFloat(estimatedHomeAppreciationRate) || 0,
-          purchaseDate,
-        },
+        projectSettings: getProjectSettings(),
       };
       saveProperty(updatedProperty);
     }
@@ -201,6 +167,7 @@ export default function BuildProperty() {
     estimatedHomeAppreciationRate,
     purchaseDate,
     property,
+    getProjectSettings,
   ]);
 
   useEffect(() => {
@@ -257,36 +224,38 @@ export default function BuildProperty() {
                 parseFloat((b.data as RefinanceBlockData).cost) > 0,
             );
             if (hasCalculatedRefinance) {
-              setBlocks((prevBlocks) => {
+              setBlocks((prevBlocks: Block[]): Block[] => {
                 let changed = false;
-                const updatedBlocks = prevBlocks.map((prevBlock) => {
-                  const calculatedBlock = result.debug.blocks.find(
-                    (cb: Block) => cb.type === prevBlock.type,
-                  );
-                  if (
-                    calculatedBlock &&
-                    calculatedBlock.data &&
-                    prevBlock.type === "refinance" &&
-                    calculatedBlock.data.cost
-                  ) {
-                    const prevData = prevBlock.data as RefinanceBlockData;
+                const updatedBlocks: Block[] = prevBlocks.map(
+                  (prevBlock: Block): Block => {
+                    const calculatedBlock = result.debug.blocks.find(
+                      (cb: Block) => cb.type === prevBlock.type,
+                    );
                     if (
-                      prevData.cost !== calculatedBlock.data.cost ||
-                      prevData.costType !== calculatedBlock.data.costType
+                      calculatedBlock &&
+                      calculatedBlock.data &&
+                      prevBlock.type === "refinance" &&
+                      calculatedBlock.data.cost
                     ) {
-                      changed = true;
-                      return {
-                        ...prevBlock,
-                        data: {
-                          ...prevBlock.data,
-                          cost: calculatedBlock.data.cost,
-                          costType: calculatedBlock.data.costType,
-                        },
-                      };
+                      const prevData = prevBlock.data as RefinanceBlockData;
+                      if (
+                        prevData.cost !== calculatedBlock.data.cost ||
+                        prevData.costType !== calculatedBlock.data.costType
+                      ) {
+                        changed = true;
+                        return {
+                          ...prevBlock,
+                          data: {
+                            ...prevBlock.data,
+                            cost: calculatedBlock.data.cost,
+                            costType: calculatedBlock.data.costType,
+                          },
+                        };
+                      }
                     }
-                  }
-                  return prevBlock;
-                });
+                    return prevBlock;
+                  },
+                );
                 return changed ? updatedBlocks : prevBlocks;
               });
             }
@@ -412,89 +381,16 @@ export default function BuildProperty() {
           <p className="text-text-muted">{property.address}</p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="bg-white rounded-lg shadow-sm border border-border p-3">
-            <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-3">
-              Project Settings
-            </h3>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-text-muted whitespace-nowrap">
-                  Cash Balance
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">
-                    $
-                  </span>
-                  <input
-                    type="number"
-                    value={idealCashHoldingBalance}
-                    onChange={(e) => setIdealCashHoldingBalance(e.target.value)}
-                    className="w-32 pl-7 pr-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="10000"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-text-muted whitespace-nowrap">
-                  Appreciation
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={estimatedHomeAppreciationRate}
-                    onChange={(e) =>
-                      setEstimatedHomeAppreciationRate(e.target.value)
-                    }
-                    className="w-20 pl-3 pr-8 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="3"
-                    step="0.1"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">
-                    %
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-text-muted whitespace-nowrap">
-                  Purchase Date
-                </label>
-                <input
-                  type="date"
-                  value={purchaseDate}
-                  onChange={(e) => setPurchaseDate(e.target.value)}
-                  className="w-36 pl-3 pr-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="cashStrategy"
-                    value="profit"
-                    checked={cashStrategy === "profit"}
-                    onChange={(e) =>
-                      setCashStrategy(e.target.value as "profit" | "paydown")
-                    }
-                    className="w-4 h-4 text-primary focus:ring-primary"
-                  />
-                  <span className="text-xs text-text">Profit</span>
-                </label>
-                <label className="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="cashStrategy"
-                    value="paydown"
-                    checked={cashStrategy === "paydown"}
-                    onChange={(e) =>
-                      setCashStrategy(e.target.value as "profit" | "paydown")
-                    }
-                    className="w-4 h-4 text-primary focus:ring-primary"
-                  />
-                  <span className="text-xs text-text">Paydown</span>
-                </label>
-              </div>
-            </div>
-          </div>
+          <ProjectSettingsPanel
+            idealCashHoldingBalance={idealCashHoldingBalance}
+            onCashBalanceChange={setIdealCashHoldingBalance}
+            estimatedHomeAppreciationRate={estimatedHomeAppreciationRate}
+            onAppreciationRateChange={setEstimatedHomeAppreciationRate}
+            purchaseDate={purchaseDate}
+            onPurchaseDateChange={setPurchaseDate}
+            cashStrategy={cashStrategy}
+            onCashStrategyChange={setCashStrategy}
+          />
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -718,84 +614,46 @@ export default function BuildProperty() {
             )}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
-                ROI
-              </p>
-              <p className="text-2xl font-bold text-text">
-                {displayMetrics.roi.toFixed(2)}%
-              </p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
-                Annualized ROI
-              </p>
-              <p className="text-2xl font-bold text-text">
-                {displayMetrics.annualizedRoi.toFixed(2)}%
-              </p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
-                Cash on Cash Return
-              </p>
-              <p className="text-2xl font-bold text-text">
-                {displayMetrics.cashOnCashReturn.toFixed(2)}%
-              </p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
-                Cap Rate
-              </p>
-              <p className="text-2xl font-bold text-text">
-                {displayMetrics.capRate.toFixed(2)}%
-              </p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
-                NOI
-              </p>
-              <p className="text-2xl font-bold text-text">
-                $
-                {displayMetrics.netOperatingIncome.toLocaleString(undefined, {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                })}
-              </p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
-                Net Present Value
-              </p>
-              <p className="text-2xl font-bold text-text">
-                $
-                {displayMetrics.netPresentValue.toLocaleString(undefined, {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                })}
-              </p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
-                Time to Pay Off
-              </p>
-              <p className="text-2xl font-bold text-text">
-                {metrics.timeToPayOffLoan !== null
-                  ? `${Math.floor(metrics.timeToPayOffLoan / 12)}y ${metrics.timeToPayOffLoan % 12}m`
-                  : "--"}
-              </p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-xs text-text-muted uppercase tracking-wide mb-1">
-                Total Profit
-              </p>
-              <p className="text-2xl font-bold text-text">
-                $
-                {displayMetrics.totalProfit.toLocaleString(undefined, {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                })}
-              </p>
-            </div>
+            <MetricCard
+              label="ROI"
+              value={displayMetrics.roi}
+              format="percentage"
+            />
+            <MetricCard
+              label="Annualized ROI"
+              value={displayMetrics.annualizedRoi}
+              format="percentage"
+            />
+            <MetricCard
+              label="Cash on Cash Return"
+              value={displayMetrics.cashOnCashReturn}
+              format="percentage"
+            />
+            <MetricCard
+              label="Cap Rate"
+              value={displayMetrics.capRate}
+              format="percentage"
+            />
+            <MetricCard
+              label="NOI"
+              value={displayMetrics.netOperatingIncome}
+              format="currency"
+            />
+            <MetricCard
+              label="Net Present Value"
+              value={displayMetrics.netPresentValue}
+              format="currency"
+            />
+            <MetricCard
+              label="Time to Pay Off"
+              value={metrics.timeToPayOffLoan}
+              format="duration"
+            />
+            <MetricCard
+              label="Total Profit"
+              value={displayMetrics.totalProfit}
+              format="currency"
+            />
           </div>
         </div>
         <LineGraph
