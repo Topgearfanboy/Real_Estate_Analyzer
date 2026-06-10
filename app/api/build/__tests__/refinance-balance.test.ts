@@ -88,7 +88,14 @@ describe("Integration Test - Refinance Balance", () => {
     console.log("Loan Info:", loanInfo);
 
     // Calculate graph data
-    const graphData = calculateGraphData(blocks, 30);
+    const graphData = calculateGraphData(
+      blocks,
+      30,
+      "profit",
+      0,
+      0,
+      "2024-01-01",
+    );
 
     // Verify the refinance monthly payment is close to expected $1,439
     expect(loanInfo.monthlyPayment).toBeCloseTo(1439, 0); // Allow some rounding

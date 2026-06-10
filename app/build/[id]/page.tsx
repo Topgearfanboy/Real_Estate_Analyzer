@@ -212,7 +212,7 @@ export default function BuildProperty() {
           monthlyPayment: result.monthlyPayment,
           loanOverlapMonthsMap: result.loanOverlapMonthsMap,
           debugBlocksSetup: result.debug?.blocks || null,
-          fullResponse: result,
+          fullResponse: { ...result, debug: undefined },
         });
 
         if (result.debug) {

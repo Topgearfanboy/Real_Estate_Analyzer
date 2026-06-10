@@ -148,23 +148,5 @@ export const calculateTotalRenovationCost = (
   const loanPaymentCost = (loanOverlapMonths || 0) * (monthlyPayment || 0);
   const utilitiesCost = monthlyUtilities * totalMonths;
 
-  console.log(
-    JSON.stringify(
-      {
-        debugType: "renovationCostCalculation",
-        itemsCost,
-        monthlyUtilities,
-        totalMonths,
-        monthlyPayment,
-        loanOverlapMonths,
-        loanPaymentCost,
-        utilitiesCost,
-        total: itemsCost + utilitiesCost + loanPaymentCost,
-      },
-      null,
-      2,
-    ),
-  );
-
   return itemsCost + utilitiesCost + loanPaymentCost;
 };

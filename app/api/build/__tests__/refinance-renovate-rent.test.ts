@@ -113,7 +113,14 @@ describe("Integration Test - Buy + Renovate + Rent + Refinance", () => {
     const loanInfo = getLoanInfo(blocks, timeline);
     console.log("Loan Info:", loanInfo);
 
-    const graphData = calculateGraphData(blocks, 30);
+    const graphData = calculateGraphData(
+      blocks,
+      30,
+      "profit",
+      0,
+      0,
+      "2024-01-01",
+    );
     console.log("Graph Data (first 5 points):", graphData.slice(0, 5));
     console.log("Graph Data (last 5 points):", graphData.slice(-5));
 
@@ -150,8 +157,11 @@ describe("Integration Test - Buy + Renovate + Rent + Refinance", () => {
     console.log("Balance before refinance:", balanceBeforeRefinance);
     console.log("Balance after refinance:", balanceAfterRefinance);
 
-    // With cost of $160,529, the refinance loan amount should be close to this value
-    expect(balanceAfterRefinance).toBeCloseTo(160529, -3);
+    // With cost of $160,529, the refinance resets the loan to that amount.
+    // graphData[refinanceMonth] reflects one month of amortization on the new
+    // loan, so the balance sits just below the $160,529 starting amount.
+    expect(balanceAfterRefinance).toBeLessThanOrEqual(160529);
+    expect(balanceAfterRefinance).toBeGreaterThan(158000);
 
     // Verify closing costs are deducted from cash on hand
     const cashOnHandBeforeRefinance = graphData[refinanceMonth - 1].cashOnHand;

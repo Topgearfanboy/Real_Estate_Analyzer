@@ -6,12 +6,16 @@ import {
 } from "@/types";
 import { processBuyBlockData } from "./buyBlock";
 import { calculateLoanBalanceOverTime } from "./loanBalance";
-import { calculateTimeline } from "./timeline";
+import {
+  blockDurationMonths,
+  calculateTimeline,
+  monthOverlap,
+} from "./timeline";
 
 // Helper function to process rent block data
 function processRentBlockData(
   blocks: Block[],
-  purchaseDate: string,
+  purchaseDayOffset: number = 0,
 ): Array<{
   baseMonthlyRent: number;
   vacancy: number;
@@ -28,7 +32,6 @@ function processRentBlockData(
     return [];
   }
 
-  const timeline = calculateTimeline(blocks, purchaseDate);
   const rentBlockDataArray: Array<{
     baseMonthlyRent: number;
     vacancy: number;
@@ -40,7 +43,16 @@ function processRentBlockData(
     rentDurationMonths: number;
   }> = [];
 
-  rentBlocks.forEach((rentBlock) => {
+  // Walk all blocks in order, accumulating a fractional month offset so each
+  // rent block's start can begin partway through a calendar month.
+  let cumulativeMonths = purchaseDayOffset;
+  blocks.forEach((rentBlock) => {
+    if (rentBlock.type !== "rent") {
+      cumulativeMonths += blockDurationMonths(rentBlock);
+      return;
+    }
+
+    const rentStartMonth = cumulativeMonths;
     const rentData = rentBlock.data as RentBlockData;
 
     // Parse rent income
@@ -71,32 +83,13 @@ function processRentBlockData(
     const annualRentIncreaseRaw =
       parseFloat(rentData.annualRentIncrease || "0") || 0;
 
-    // Calculate rent duration
+    // Calculate rent duration (fractional months supported via days elsewhere)
     const months = parseInt(rentData.timeRentedMonths) || 0;
     const years = parseInt(rentData.timeRentedYears) || 0;
     const rentDurationMonths = months + years * 12;
 
-    // Find this specific rent block index in timeline to determine start month
-    // Since TimelineEntry doesn't have an id, we match by the Nth rent block
-    let rentStartMonth = 0;
-    let currentRentBlockCount = 0;
-    for (let i = 0; i < timeline.length; i++) {
-      if (timeline[i].type === "rent") {
-        if (currentRentBlockCount === rentBlockDataArray.length) {
-          // This is the timeline entry for the current rent block
-          for (let j = 0; j < i; j++) {
-            const blockDuration = Math.round(
-              (timeline[j].endDate.getTime() -
-                timeline[j].startDate.getTime()) /
-                (1000 * 60 * 60 * 24 * 30),
-            );
-            rentStartMonth += blockDuration;
-          }
-          break;
-        }
-        currentRentBlockCount++;
-      }
-    }
+    // Advance the cumulative offset past this rent block for the next block.
+    cumulativeMonths += rentDurationMonths;
 
     rentBlockDataArray.push({
       baseMonthlyRent: monthlyRent,
@@ -116,7 +109,7 @@ function processRentBlockData(
 // Helper function to process renovate block data
 function processRenovateBlockData(
   blocks: Block[],
-  purchaseDate: string,
+  purchaseDayOffset: number = 0,
 ): {
   totalRenovationCost: number;
   renovateStartMonth: number;
@@ -140,27 +133,19 @@ function processRenovateBlockData(
     }
   }
 
-  // Calculate renovation duration
-  const days = parseInt(renovateData.timeToRenovate.days) || 0;
-  const months = parseInt(renovateData.timeToRenovate.months) || 0;
-  const years = parseInt(renovateData.timeToRenovate.years) || 0;
-  const renovateDurationMonths = Math.round(days / 30) + months + years * 12;
+  // Calculate renovation duration in fractional months so partial days are
+  // preserved (e.g. 14 days -> ~0.47 months) for proration across boundaries.
+  const renovateDurationMonths = blockDurationMonths(renovateBlock);
 
   // Extract ARV
   const arv = parseFloat(renovateData.arv?.replace(/[^0-9.]/g, "") || "0") || 0;
 
-  // Find renovate block index in timeline to determine start month
-  const timeline = calculateTimeline(blocks, purchaseDate);
-  const renovateIndex = timeline.findIndex((t) => t.type === "renovate");
-  let renovateStartMonth = 0;
-  if (renovateIndex >= 0) {
-    for (let i = 0; i < renovateIndex; i++) {
-      const blockDuration = Math.round(
-        (timeline[i].endDate.getTime() - timeline[i].startDate.getTime()) /
-          (1000 * 60 * 60 * 24 * 30),
-      );
-      renovateStartMonth += blockDuration;
-    }
+  // Determine the renovate block's fractional start month by summing the
+  // durations of all blocks that precede it in order.
+  const renovateIndex = blocks.indexOf(renovateBlock);
+  let renovateStartMonth = purchaseDayOffset;
+  for (let i = 0; i < renovateIndex; i++) {
+    renovateStartMonth += blockDurationMonths(blocks[i]);
   }
 
   return {
@@ -190,8 +175,24 @@ export function calculateGraphData(
   purchaseDate: string = new Date().toISOString().split("T")[0],
 ): GraphDataPoint[] {
   const buyBlockData = processBuyBlockData(blocks);
-  const rentBlockDataArray = processRentBlockData(blocks, purchaseDate);
-  const renovateBlockData = processRenovateBlockData(blocks, purchaseDate);
+
+  // Calculate how far into the first calendar month the purchase falls.
+  // e.g. a purchase on Feb 23 in a 28-day month means (23-1)/28 ≈ 0.786
+  // of the month has already passed, so all block windows are shifted forward
+  // by that fraction so proration correctly covers only the remaining days.
+  const purchaseDateObj = new Date(purchaseDate);
+  const purchaseDay = purchaseDateObj.getUTCDate();
+  const daysInPurchaseMonth = new Date(
+    Date.UTC(
+      purchaseDateObj.getUTCFullYear(),
+      purchaseDateObj.getUTCMonth() + 1,
+      0,
+    ),
+  ).getUTCDate();
+  const purchaseDayOffset = (purchaseDay - 1) / daysInPurchaseMonth;
+
+  const rentBlockDataArray = processRentBlockData(blocks, purchaseDayOffset);
+  const renovateBlockData = processRenovateBlockData(blocks, purchaseDayOffset);
 
   if (!buyBlockData) {
     // Return static data if no buy block
@@ -252,14 +253,15 @@ export function calculateGraphData(
         refinanceData.estimatedValue?.replace(/[^0-9.]/g, "") || "0",
       ) || 0;
 
-    // Calculate months before refinance by summing durations of previous blocks
+    // Calculate months before refinance by summing the (fractional) durations
+    // of previous blocks, then rounding to the nearest calendar-month index.
+    // Using blockDurationMonths avoids the calendar-day drift that the old
+    // Date-difference approach introduced for multi-year periods.
+    let fractionalMonthsBeforeRefinance = 0;
     for (let i = 0; i < refinanceIndex; i++) {
-      const blockDuration = Math.round(
-        (timeline[i].endDate.getTime() - timeline[i].startDate.getTime()) /
-          (1000 * 60 * 60 * 24 * 30),
-      );
-      monthsBeforeRefinance += blockDuration;
+      fractionalMonthsBeforeRefinance += blockDurationMonths(blocks[i]);
     }
+    monthsBeforeRefinance = Math.round(fractionalMonthsBeforeRefinance);
 
     // Calculate new loan amount after refinance
     let newLoanAmount: number;
@@ -414,13 +416,17 @@ export function calculateGraphData(
       propertyValue *= 1 + monthlyAppreciationRate;
     }
 
-    // Update property value to ARV after renovation completes
+    // Update property value to ARV after renovation completes. The end can be
+    // fractional (e.g. 6.5 months) so we apply the ARV at the nearest calendar
+    // month index to the completion point.
     if (
       renovateBlockData &&
       renovateBlockData.arv > 0 &&
       i ===
-        renovateBlockData.renovateStartMonth +
-          renovateBlockData.renovateDurationMonths
+        Math.round(
+          renovateBlockData.renovateStartMonth +
+            renovateBlockData.renovateDurationMonths,
+        )
     ) {
       propertyValue = renovateBlockData.arv;
     }
@@ -513,14 +519,19 @@ export function calculateGraphData(
       }
     }
 
-    // Add rent income if within any rent period
+    // Add rent income if within any rent period. Rent can start partway through
+    // a calendar month (e.g. after a 14-day renovation), so the first and last
+    // months are prorated by how much of the month the rent window overlaps.
     for (const rentBlockData of rentBlockDataArray) {
-      if (
-        i >= rentBlockData.rentStartMonth &&
-        i < rentBlockData.rentStartMonth + rentBlockData.rentDurationMonths
-      ) {
-        // Calculate current rent with annual increase
-        const monthsIntoRent = i - rentBlockData.rentStartMonth;
+      const overlap = monthOverlap(
+        i,
+        rentBlockData.rentStartMonth,
+        rentBlockData.rentDurationMonths,
+      );
+      if (overlap > 0) {
+        // Calculate current rent with annual increase (clamp to >= 0 so the
+        // partial first month isn't treated as a negative year).
+        const monthsIntoRent = Math.max(0, i - rentBlockData.rentStartMonth);
         const yearsIntoRent = Math.floor(monthsIntoRent / 12);
 
         let currentRent = rentBlockData.baseMonthlyRent;
@@ -536,33 +547,35 @@ export function calculateGraphData(
           }
         }
 
-        // Calculate net cash flow with current rent
+        // Calculate net cash flow with current rent, prorated by overlap
         const netCashFlow =
           currentRent -
           rentBlockData.vacancy -
           rentBlockData.management -
           rentBlockData.maintenance;
-        monthlyCashFlow += netCashFlow;
+        monthlyCashFlow += netCashFlow * overlap;
       }
     }
 
     // Apply renovation costs during renovation period
-    if (renovateBlockData && i >= renovateBlockData.renovateStartMonth) {
-      // If duration is 0, apply full cost at start month
+    if (renovateBlockData) {
+      // If duration is 0, apply full cost at the start month
       if (renovateBlockData.renovateDurationMonths === 0) {
-        if (i === renovateBlockData.renovateStartMonth) {
+        if (i === Math.round(renovateBlockData.renovateStartMonth)) {
           monthlyCashFlow -= renovateBlockData.totalRenovationCost;
         }
-      } else if (
-        i <
-        renovateBlockData.renovateStartMonth +
-          renovateBlockData.renovateDurationMonths
-      ) {
-        // Spread renovation cost evenly over the renovation period
+      } else {
+        // Spread renovation cost evenly over the renovation period, prorating
+        // the partial first/last months by their overlap with the window.
+        const overlap = monthOverlap(
+          i,
+          renovateBlockData.renovateStartMonth,
+          renovateBlockData.renovateDurationMonths,
+        );
         const monthlyRenovationCost =
           renovateBlockData.totalRenovationCost /
           renovateBlockData.renovateDurationMonths;
-        monthlyCashFlow -= monthlyRenovationCost;
+        monthlyCashFlow -= monthlyRenovationCost * overlap;
       }
     }
 

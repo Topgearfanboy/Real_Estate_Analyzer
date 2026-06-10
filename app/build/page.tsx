@@ -137,9 +137,7 @@ export default function Build() {
           );
         }
         const result = await response.json();
-        console.log("API Response Debug:", result);
         if (result.debug) {
-          console.log("Blocks Setup:", result.debug.blocks);
           // Update blocks state with calculated values from backend
           // Only update if the backend returned blocks with calculated refinance cost
           if (result.debug.blocks && result.debug.blocks.length > 0) {
@@ -188,7 +186,6 @@ export default function Build() {
           }
         }
         if (result.graphData) {
-          console.log("Graph Data Values:", result.graphData);
           setGraphData(result.graphData);
         }
         if (result.monthlyPayment !== undefined) {

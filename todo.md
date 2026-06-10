@@ -1,7 +1,7 @@
 TODO:
 
 - Add help messages
-- month at which rennovation occurs causes no rental income even if it is 0 days long. Probably needs to be calculated percentage wise. Not sure if this is an issue
+- fix monthly cost to own within rennovate block.
 - check cap rate formula
 - when a refiancing block is placed its intial estimated value should be the intial purchase price then affected by the est home appreciation rate and the time it has been since the inital purchase
 - properties should be saved to localStorage when created and we need to make a page that allows you to select local properties
@@ -33,3 +33,5 @@ Completed:
 - hide Cash Balance if profit is selected - Done
 - the stats on the side should show the values up until the point on the graph that is being hovered over not the entire graph
 - there needs to be a general analysis section that shows key metrics like roi, cash on cash return, time to pay off loan, etc.
+- years dont line up
+- month at which rennovation occurs causes no rental income even if it is 0 days long. Probably needs to be calculated percentage wise. Not sure if this is an issue

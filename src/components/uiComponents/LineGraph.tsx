@@ -51,19 +51,23 @@ const CustomTooltip = ({
   }, [active, label, data, onHoverIndexChange]);
 
   if (active && payload && payload.length && label && data) {
-    // Calculate years and months since beginning (use first data point as start)
+    // Calculate the project month number (1-based: the purchase month is
+    // month 1) so this matches the Key Metrics "as of" label.
     const startDate = new Date(data[0].date + "-01");
     const currentDate = new Date(label + "-01");
     const monthsDiff =
       (currentDate.getFullYear() - startDate.getFullYear()) * 12 +
       (currentDate.getMonth() - startDate.getMonth());
-    const years = Math.floor(monthsDiff / 12);
-    const months = monthsDiff % 12;
+    const monthNumber = monthsDiff + 1;
+    const years = Math.floor(monthNumber / 12);
+    const months = monthNumber % 12;
 
     const timeSinceStart =
-      years > 0
-        ? `${years} year${years !== 1 ? "s" : ""}${months > 0 ? `, ${months} month${months !== 1 ? "s" : ""}` : ""}`
-        : `${months} month${months !== 1 ? "s" : ""}`;
+      years > 0 && months > 0
+        ? `${years} years and ${months} months`
+        : years > 0
+          ? `${years} years`
+          : `${months} months`;
 
     // Find monthlyNet from data
     const dataPoint = data.find((d) => d.date === label);

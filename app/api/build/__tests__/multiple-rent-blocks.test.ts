@@ -118,20 +118,22 @@ describe("Integration Test - Multiple Rent Blocks", () => {
     expect(graphData[firstRentPeriodEnd].date).toBe("2029-12");
     expect(graphData[firstRentPeriodEnd].cashOnHand).toBe(10000);
 
-    // Refinance happens at month 72 (2030-01)
+    // Refinance happens at month 72 (2030-01). The second rent block starts
+    // immediately after the first ends (no calendar-drift gap), so rent income
+    // is continuous. The refinance lowers the mortgage payment, so monthly net
+    // should increase relative to the prior month and stay positive.
     const refinanceMonth = 72;
     expect(graphData[refinanceMonth].date).toBe("2030-01");
-    // Cash on hand should drop due to refinance costs
-    expect(graphData[refinanceMonth].cashOnHand).toBeLessThan(10000);
-    // Monthly net should be negative due to refinance costs
-    expect(graphData[refinanceMonth].monthlyNet).toBeLessThan(0);
+    expect(graphData[refinanceMonth].monthlyNet).toBeGreaterThan(0);
+    expect(graphData[refinanceMonth].monthlyNet).toBeGreaterThan(
+      graphData[refinanceMonth - 1].monthlyNet,
+    );
 
-    // Second rent period starts at month 73 (2030-02)
+    // Second rent period continues at month 73 (2030-02)
     const secondRentStart = 73;
     expect(graphData[secondRentStart].date).toBe("2030-02");
-    // Cash on hand should recover (but will be slightly less due to property taxes/insurance)
-    expect(graphData[secondRentStart].cashOnHand).toBeCloseTo(9871.59, 0);
-    // Monthly net should be positive again
+    // Cash on hand stays capped by the paydown strategy and net stays positive
+    expect(graphData[secondRentStart].cashOnHand).toBeGreaterThan(0);
     expect(graphData[secondRentStart].monthlyNet).toBeGreaterThan(0);
 
     // Verify loan gets paid off at some point

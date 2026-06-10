@@ -85,7 +85,14 @@ describe("Integration Test - Buy + Rent + Renovate with ARV and 0 Duration", () 
     const loanInfo = getLoanInfo(blocks, timeline);
     console.log("Loan Info:", loanInfo);
 
-    const graphData = calculateGraphData(blocks, 30);
+    const graphData = calculateGraphData(
+      blocks,
+      30,
+      "profit",
+      0,
+      0,
+      "2024-01-01",
+    );
     console.log("Graph Data (first 5 points):", graphData.slice(0, 5));
     console.log("Graph Data (around renovation):", graphData.slice(47, 52));
     console.log("Graph Data (last 5 points):", graphData.slice(-5));
@@ -111,18 +118,18 @@ describe("Integration Test - Buy + Rent + Renovate with ARV and 0 Duration", () 
     expect(cashOnHandBeforeRenovation).toBeGreaterThan(0);
 
     // Verify renovation cost is applied when renovation completes
-    // With 0 duration, the full $10,000 cost should be applied at the renovation completion month
-    // The cash on hand decrease should include the renovation cost plus the loss of rental income
+    // Rent runs months 0-47 (4 years), so renovation starts at month 48.
+    // The full ~$10,000 cost is applied at month 48, so the cash-on-hand drop
+    // (renovation cost plus the loss of rental income) appears between 47->48.
+    const cashOnHandMonth47 = graphData[47].cashOnHand;
     const cashOnHandMonth48 = graphData[48].cashOnHand;
-    const cashOnHandMonth49 = graphData[49].cashOnHand;
-    const cashOnHandDecrease = cashOnHandMonth48 - cashOnHandMonth49;
+    const cashOnHandDecrease = cashOnHandMonth47 - cashOnHandMonth48;
     // The decrease should be at least $10,000 (renovation cost)
     expect(cashOnHandDecrease).toBeGreaterThanOrEqual(10000);
 
-    // Verify ARV updates property value after renovation completes (month 48 + 0 = 48)
-    // ARV should be applied at the same month renovation completes
-    const equityBeforeArv = graphData[48].equity;
-    const equityAfterArv = graphData[49].equity;
+    // Verify ARV updates property value at the renovation completion month (48)
+    const equityBeforeArv = graphData[47].equity;
+    const equityAfterArv = graphData[48].equity;
 
     console.log("Equity before ARV:", equityBeforeArv);
     console.log("Equity after ARV:", equityAfterArv);
@@ -131,8 +138,8 @@ describe("Integration Test - Buy + Rent + Renovate with ARV and 0 Duration", () 
     expect(equityAfterArv).toBeGreaterThan(equityBeforeArv);
 
     // Verify equity after ARV is approximately $300,000 - remaining loan balance
-    const remainingLoanBalanceAtMonth49 = graphData[49].remainingLoanBalance;
-    const expectedEquity = 300000 - remainingLoanBalanceAtMonth49;
+    const remainingLoanBalanceAtMonth48 = graphData[48].remainingLoanBalance;
+    const expectedEquity = 300000 - remainingLoanBalanceAtMonth48;
     expect(equityAfterArv).toBeCloseTo(expectedEquity, -2); // Allow some rounding
   });
 });

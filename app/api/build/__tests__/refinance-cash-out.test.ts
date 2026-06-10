@@ -83,7 +83,14 @@ describe("Integration Test - Refinance Cash Out", () => {
     const loanInfo = getLoanInfo(blocks, timeline);
     console.log("Loan Info:", loanInfo);
 
-    const graphData = calculateGraphData(blocks, 30);
+    const graphData = calculateGraphData(
+      blocks,
+      30,
+      "profit",
+      0,
+      0,
+      "2024-01-01",
+    );
     console.log("Graph Data (first 5 points):", graphData.slice(0, 5));
     console.log("Graph Data (last 5 points):", graphData.slice(-5));
 
@@ -189,7 +196,14 @@ describe("Integration Test - Refinance Cash Out", () => {
       },
     ];
 
-    const graphData = calculateGraphData(blocks, 30);
+    const graphData = calculateGraphData(
+      blocks,
+      30,
+      "profit",
+      0,
+      0,
+      "2024-01-01",
+    );
 
     // Find the refinance point (should be after 12 months of renting)
     const refinanceMonth = 12;
