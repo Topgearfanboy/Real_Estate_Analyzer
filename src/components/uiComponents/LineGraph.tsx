@@ -26,6 +26,7 @@ interface LineGraphProps {
   selectedYears?: number;
   onYearsChange?: (years: number) => void;
   onHoverIndexChange?: (index: number | null) => void;
+  onExport?: () => void;
 }
 
 const CustomTooltip = ({
@@ -97,15 +98,8 @@ export function LineGraph({
   selectedYears = 30,
   onYearsChange,
   onHoverIndexChange,
+  onExport,
 }: LineGraphProps) {
-  if (!data || data.length === 0) {
-    return (
-      <div className="w-full h-80 bg-white rounded-xl shadow-sm border border-border p-4 flex items-center justify-center">
-        <p className="text-text-muted">No data available</p>
-      </div>
-    );
-  }
-
   const yearOptions = [1, 5, 10, 15, 20, 25, 30, 40, 50];
 
   return (
@@ -117,6 +111,18 @@ export function LineGraph({
         <h3 className="text-lg font-semibold text-text">Financial Analysis</h3>
         {onYearsChange && (
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                console.log(
+                  "[LineGraph] Export button clicked, onExport:",
+                  onExport,
+                );
+                onExport?.();
+              }}
+              className="px-3 py-1.5 text-sm bg-primary text-white rounded-lg hover:bg-primary-dark font-medium transition-colors"
+            >
+              Export
+            </button>
             <label htmlFor="years-select" className="text-sm text-text-muted">
               Years:
             </label>
@@ -135,67 +141,73 @@ export function LineGraph({
           </div>
         )}
       </div>
-      <ResponsiveContainer width="100%" height="85%">
-        <LineChart
-          data={data}
-          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis
-            dataKey="date"
-            stroke="#6b7280"
-            fontSize={12}
-            tickLine={false}
-          />
-          <YAxis
-            stroke="#6b7280"
-            fontSize={12}
-            tickLine={false}
-            tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-          />
-          <Tooltip
-            content={
-              <CustomTooltip
-                data={data}
-                onHoverIndexChange={onHoverIndexChange}
-              />
-            }
-          />
-          <Legend wrapperStyle={{ fontSize: "12px" }} />
-          <Line
-            type="monotone"
-            dataKey="investedCapital"
-            name="Invested Capital"
-            stroke="#3b82f6"
-            strokeWidth={2}
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="cashOnHand"
-            name="Cash on Hand"
-            stroke="#10b981"
-            strokeWidth={2}
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="equity"
-            name="Equity"
-            stroke="#f59e0b"
-            strokeWidth={2}
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="remainingLoanBalance"
-            name="Remaining Loan Balance"
-            stroke="#ef4444"
-            strokeWidth={2}
-            dot={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      {!data || data.length === 0 ? (
+        <div className="h-[85%] flex items-center justify-center">
+          <p className="text-text-muted">No data available</p>
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height="85%">
+          <LineChart
+            data={data}
+            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis
+              dataKey="date"
+              stroke="#6b7280"
+              fontSize={12}
+              tickLine={false}
+            />
+            <YAxis
+              stroke="#6b7280"
+              fontSize={12}
+              tickLine={false}
+              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+            />
+            <Tooltip
+              content={
+                <CustomTooltip
+                  data={data}
+                  onHoverIndexChange={onHoverIndexChange}
+                />
+              }
+            />
+            <Legend wrapperStyle={{ fontSize: "12px" }} />
+            <Line
+              type="monotone"
+              dataKey="investedCapital"
+              name="Invested Capital"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              dot={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="cashOnHand"
+              name="Cash on Hand"
+              stroke="#10b981"
+              strokeWidth={2}
+              dot={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="equity"
+              name="Equity"
+              stroke="#f59e0b"
+              strokeWidth={2}
+              dot={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="remainingLoanBalance"
+              name="Remaining Loan Balance"
+              stroke="#ef4444"
+              strokeWidth={2}
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }

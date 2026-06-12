@@ -233,7 +233,7 @@ export function RenovateBlock({
                   value={totalCost > 0 ? `$${totalCost.toLocaleString()}` : "-"}
                 />
                 <AnalysisItem
-                  label="Utilities During Renovation"
+                  label="Utilities & Mortgage"
                   value={
                     totalRenovationCost > totalCost
                       ? `$${(totalRenovationCost - totalCost).toLocaleString()}`

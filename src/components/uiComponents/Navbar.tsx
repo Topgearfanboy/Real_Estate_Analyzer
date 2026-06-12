@@ -30,12 +30,6 @@ export function Navbar() {
             Dashboard
           </Link>
           <Link
-            href="/build"
-            className="text-text-muted hover:text-text transition-colors"
-          >
-            Build
-          </Link>
-          <Link
             href="/reports"
             className="text-text-muted hover:text-text transition-colors"
           >

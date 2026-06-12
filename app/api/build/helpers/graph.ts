@@ -222,6 +222,8 @@ export function calculateGraphData(
   // Calculate monthly payment for loan
   let monthlyPayment = 0;
   let refinanceMonthlyPayment = 0;
+  let refinancePropertyTaxes = 0;
+  let refinanceHomeownersInsurance = 0;
   if (loanAmount > 0 && monthlyRate > 0) {
     const monthlyRateDecimal = monthlyRate / 100 / 12;
     const numPayments = loanTermYears * 12;
@@ -356,6 +358,24 @@ export function calculateGraphData(
       refinanceMonthlyPayment = newLoanAmount / (newTerm * 12);
     }
 
+    // Parse refinance property taxes and homeowners insurance
+    const refTaxesRaw =
+      parseFloat(refinanceData.propertyTaxes?.replace(/[^0-9.]/g, "") || "0") ||
+      0;
+    refinancePropertyTaxes =
+      refinanceData.propertyTaxesType === "%"
+        ? (refTaxesRaw / 100) * estimatedValue
+        : refTaxesRaw;
+
+    const refInsuranceRaw =
+      parseFloat(
+        refinanceData.homeownersInsurance?.replace(/[^0-9.]/g, "") || "0",
+      ) || 0;
+    refinanceHomeownersInsurance =
+      refinanceData.homeownersInsuranceType === "%"
+        ? (refInsuranceRaw / 100) * estimatedValue
+        : refInsuranceRaw;
+
     const loanBeforeRefinance = calculateLoanBalanceOverTime(
       loanAmount,
       buyBlockData.monthlyRate,
@@ -436,8 +456,18 @@ export function calculateGraphData(
     let monthlyNet = 0; // Rental income - expenses - mortgage
 
     // Calculate fixed monthly expenses
-    const monthlyPropertyTaxes = propertyTaxes / 12;
-    const monthlyHomeownersInsurance = homeownersInsurance / 12;
+    // After the refinance point, taxes and insurance switch to the refinance block's values
+    // (falling back to the buy block's if left empty). HOA always comes from the original purchase.
+    const isPostRefinance =
+      refinanceBlock && refinanceIndex >= 0 && i >= monthsBeforeRefinance;
+    const activeTaxes = isPostRefinance
+      ? refinancePropertyTaxes
+      : propertyTaxes;
+    const activeInsurance = isPostRefinance
+      ? refinanceHomeownersInsurance
+      : homeownersInsurance;
+    const monthlyPropertyTaxes = activeTaxes / 12;
+    const monthlyHomeownersInsurance = activeInsurance / 12;
     const monthlyHoa = annualHoa / 12;
     const monthlyFixedExpenses =
       monthlyPropertyTaxes + monthlyHomeownersInsurance + monthlyHoa;

@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String
+  name      String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  properties Property[]
+}
+
+model Property {
+  id          String   @id @default(uuid())
+  name        String
+  address     String?
+  description String?
+  purchasePrice Float
+  currentValue  Float?
+  squareFootage Int?
+  yearBuilt     Int?
+  
+  // Project settings (matching your existing structure)
+  landValue         Float   @default(0)
+  landValueType     String  @default("amount") // 'amount' | 'percentage'
+  closingDate       String?
+  loanType          String  @default("fixed") // 'fixed' | 'interest_only'
+  holdPeriod        Int     @default(60)
+  exitStrategy      String  @default("sell") // 'sell' | 'refinance'
+  refinanceDate     String?
+  refinanceInterest Float   @default(0)
+  
+  // JSON fields for flexible block storage
+  blocks    Json?    // Array of block data (buy, refinance, renovate, etc.)
+  metrics   Json?    // Calculated metrics
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}

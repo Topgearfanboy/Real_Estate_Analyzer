@@ -1,7 +1,6 @@
 TODO:
 
 - Add help messages
-- fix monthly cost to own within rennovate block.
 - check cap rate formula
 - when a refiancing block is placed its intial estimated value should be the intial purchase price then affected by the est home appreciation rate and the time it has been since the inital purchase
 - properties should be saved to localStorage when created and we need to make a page that allows you to select local properties
@@ -10,6 +9,7 @@ TODO:
 - Inflation rate to home calculator
 - Automated data pulling for appreciation rates, tax rates etc based on locality
 - upload blocks into data base and implement login system
+- comparison to a stock market portfolio
 
 - Current House Tracking
   - Expense upload and tracking
@@ -35,3 +35,4 @@ Completed:
 - there needs to be a general analysis section that shows key metrics like roi, cash on cash return, time to pay off loan, etc.
 - years dont line up
 - month at which rennovation occurs causes no rental income even if it is 0 days long. Probably needs to be calculated percentage wise. Not sure if this is an issue
+- fix monthly cost to own within rennovate block.

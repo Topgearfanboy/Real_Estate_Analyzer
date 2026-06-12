@@ -45,16 +45,6 @@ export default function BuildProperty() {
   const propertyId = params.id as string;
 
   const [property, setProperty] = useState<Property | null>(null);
-  const {
-    blocks,
-    setBlocks,
-    addBlock,
-    removeBlock,
-    moveBlock,
-    updateBlockData,
-    hasBuyBlock,
-    hasSellBlock,
-  } = useBlockManager();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [graphData, setGraphData] = useState<GraphDataPoint[]>([]);
   const [monthlyPayment, setMonthlyPayment] = useState(0);
@@ -74,6 +64,27 @@ export default function BuildProperty() {
     setPurchaseDate,
     getProjectSettings,
   } = useProjectSettings();
+
+  // Create project settings object to pass to useBlockManager
+  const currentProjectSettings = {
+    years: selectedYears,
+    cashStrategy,
+    idealCashHoldingBalance: parseFloat(idealCashHoldingBalance) || 0,
+    estimatedHomeAppreciationRate:
+      parseFloat(estimatedHomeAppreciationRate) || 0,
+    purchaseDate,
+  };
+
+  const {
+    blocks,
+    setBlocks,
+    addBlock,
+    removeBlock,
+    moveBlock,
+    updateBlockData,
+    hasBuyBlock,
+    hasSellBlock,
+  } = useBlockManager(undefined, currentProjectSettings);
   const [metrics, setMetrics] = useState<{
     roi: number;
     cashOnCashReturn: number;
@@ -169,6 +180,33 @@ export default function BuildProperty() {
     property,
     getProjectSettings,
   ]);
+
+  const handleExport = async () => {
+    try {
+      const projectSettings = getProjectSettings();
+      const response = await fetch("/api/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocks, projectSettings }),
+      });
+      if (!response.ok) {
+        throw new Error(
+          `Export failed: ${response.status} ${response.statusText}`,
+        );
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "financial-analysis.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export failed:", error);
+    }
+  };
 
   useEffect(() => {
     const syncBlocks = async () => {
@@ -661,6 +699,7 @@ export default function BuildProperty() {
           selectedYears={selectedYears}
           onYearsChange={setSelectedYears}
           onHoverIndexChange={setHoveredIndex}
+          onExport={handleExport}
         />
       </div>
     </div>
