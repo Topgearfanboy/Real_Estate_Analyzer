@@ -5,7 +5,6 @@ import { verifyToken } from "./src/lib/auth";
 const PUBLIC_ROUTES = [
   "/login",
   "/register",
-  "/",
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/logout",
@@ -15,20 +14,23 @@ const PUBLIC_ROUTES = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Log all requests for debugging
+  const token = request.cookies.get("auth-token")?.value;
+  console.log(
+    "[MIDDLEWARE] Request:",
+    pathname,
+    "Token:",
+    token ? token.substring(0, 10) + "..." : "none",
+  );
+
   // Allow public routes
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
+    console.log("[MIDDLEWARE] Allowing public route:", pathname);
     return NextResponse.next();
   }
-
-  // Allow API routes that don't need protection (adjust as needed)
-  if (pathname.startsWith("/api/build") || pathname.startsWith("/api/metrics")) {
-    return NextResponse.next();
-  }
-
-  // Check for auth token
-  const token = request.cookies.get("auth-token")?.value;
 
   if (!token) {
+    console.log("[MIDDLEWARE] No token, redirecting to login");
     // Redirect to login for page routes
     if (!pathname.startsWith("/api/")) {
       return NextResponse.redirect(new URL("/login", request.url));
@@ -38,9 +40,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // Verify token
-  const payload = verifyToken(token);
+  const payload = await verifyToken(token);
 
   if (!payload) {
+    console.log("[MIDDLEWARE] Token invalid or expired");
     // Token is invalid or expired
     if (!pathname.startsWith("/api/")) {
       return NextResponse.redirect(new URL("/login", request.url));
@@ -48,11 +51,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  console.log("[MIDDLEWARE] Token valid, allowing request");
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|public/).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|public/).*)"],
 };

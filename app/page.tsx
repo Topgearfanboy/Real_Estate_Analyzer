@@ -2,49 +2,78 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { Property } from "@/types";
-import {
-  getProperties,
-  createNewProperty,
-  saveProperty,
-} from "@/utils/propertyStorage";
+import { useAuth } from "@/hooks/useAuth";
+import { getProperties, createNewProperty } from "@/utils/propertyStorage";
 
 export default function Home() {
+  const router = useRouter();
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
   const [showNewPropertyForm, setShowNewPropertyForm] = useState(false);
   const [newPropertyName, setNewPropertyName] = useState("");
   const [newPropertyAddress, setNewPropertyAddress] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadProperties = () => {
-      const loaded = getProperties();
-      setProperties(loaded);
-      setIsLoading(false);
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
+    const loadProperties = async () => {
+      try {
+        const loaded = await getProperties();
+        setProperties(loaded);
+        setError(null);
+      } catch (err) {
+        if (err instanceof Error && err.message === "Unauthorized") {
+          router.push("/login");
+        } else {
+          setError("Failed to load properties");
+        }
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadProperties();
-  }, []);
+  }, [authLoading, isAuthenticated, router]);
 
-  const handleAddProperty = () => {
+  const handleAddProperty = async () => {
     if (!newPropertyName.trim() || !newPropertyAddress.trim()) {
       alert("Please enter both property name and address");
       return;
     }
 
-    const newProperty = createNewProperty(newPropertyName, newPropertyAddress);
-    saveProperty(newProperty);
-    setProperties([...properties, newProperty]);
-    setNewPropertyName("");
-    setNewPropertyAddress("");
-    setShowNewPropertyForm(false);
+    try {
+      const newProperty = await createNewProperty(
+        newPropertyName,
+        newPropertyAddress,
+      );
+      setProperties([...properties, newProperty]);
+      setNewPropertyName("");
+      setNewPropertyAddress("");
+      setShowNewPropertyForm(false);
+      setError(null);
+    } catch (err) {
+      if (err instanceof Error && err.message === "Unauthorized") {
+        router.push("/login");
+      } else {
+        setError("Failed to create property");
+      }
+    }
   };
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="p-6">
         <h1 className="text-3xl font-bold text-text mb-8">Dashboard</h1>
-        <div className="text-text-muted">Loading properties...</div>
+        <div className="text-text-muted">Loading...</div>
       </div>
     );
   }
@@ -124,6 +153,12 @@ export default function Home() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600">{error}</p>
         </div>
       )}
 

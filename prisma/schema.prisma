@@ -27,24 +27,12 @@ model Property {
   name        String
   address     String?
   description String?
-  purchasePrice Float
-  currentValue  Float?
   squareFootage Int?
   yearBuilt     Int?
   
-  // Project settings (matching your existing structure)
-  landValue         Float   @default(0)
-  landValueType     String  @default("amount") // 'amount' | 'percentage'
-  closingDate       String?
-  loanType          String  @default("fixed") // 'fixed' | 'interest_only'
-  holdPeriod        Int     @default(60)
-  exitStrategy      String  @default("sell") // 'sell' | 'refinance'
-  refinanceDate     String?
-  refinanceInterest Float   @default(0)
-  
-  // JSON fields for flexible block storage
-  blocks    Json?    // Array of block data (buy, refinance, renovate, etc.)
-  metrics   Json?    // Calculated metrics
+  // JSON fields for flexible data storage
+  projectSettings Json?  // Project configuration (purchasePrice, currentValue, years, cashStrategy, etc.)
+  blocks    Json?        // Array of block data (buy, refinance, renovate, etc.)
   
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -1,5 +1,6 @@
 TODO:
 
+- tests for remote property storage functionality
 - Add help messages
 - check cap rate formula
 - when a refiancing block is placed its intial estimated value should be the intial purchase price then affected by the est home appreciation rate and the time it has been since the inital purchase
@@ -8,6 +9,7 @@ TODO:
 - Ai chat box in home evaluator
 - Inflation rate to home calculator
 - Automated data pulling for appreciation rates, tax rates etc based on locality
+  - property tax rate by zip code: https://api.api-ninjas.com/v1/zipcode
 - upload blocks into data base and implement login system
 - comparison to a stock market portfolio
 

@@ -109,27 +109,39 @@ export default function BuildProperty() {
 
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadProperty = () => {
-      const loaded = getPropertyById(propertyId);
-      if (!loaded) {
-        router.push("/");
-        return;
-      }
+    const loadProperty = async () => {
+      try {
+        const loaded = await getPropertyById(propertyId);
+        if (!loaded) {
+          router.push("/");
+          return;
+        }
 
-      setProperty(loaded);
-      setBlocks(loaded.blocks);
-      setSelectedYears(loaded.projectSettings.years);
-      setCashStrategy(loaded.projectSettings.cashStrategy);
-      setIdealCashHoldingBalance(
-        loaded.projectSettings.idealCashHoldingBalance.toString(),
-      );
-      setEstimatedHomeAppreciationRate(
-        loaded.projectSettings.estimatedHomeAppreciationRate.toString(),
-      );
-      setPurchaseDate(loaded.projectSettings.purchaseDate);
-      setIsLoading(false);
+        setProperty(loaded);
+        setBlocks(loaded.blocks);
+        setSelectedYears(loaded.projectSettings.years);
+        setCashStrategy(loaded.projectSettings.cashStrategy);
+        setIdealCashHoldingBalance(
+          loaded.projectSettings.idealCashHoldingBalance.toString(),
+        );
+        setEstimatedHomeAppreciationRate(
+          loaded.projectSettings.estimatedHomeAppreciationRate.toString(),
+        );
+        setPurchaseDate(loaded.projectSettings.purchaseDate);
+        setSaveError(null);
+      } catch (error) {
+        if (error instanceof Error && error.message === "Unauthorized") {
+          router.push("/login");
+        } else {
+          console.error("Failed to load property:", error);
+          setSaveError("Failed to load property");
+        }
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadProperty();
@@ -162,14 +174,28 @@ export default function BuildProperty() {
       : null;
 
   useEffect(() => {
-    if (property) {
-      const updatedProperty: Property = {
-        ...property,
-        blocks,
-        projectSettings: getProjectSettings(),
-      };
-      saveProperty(updatedProperty);
-    }
+    const autoSave = async () => {
+      if (property) {
+        try {
+          const updatedProperty: Property = {
+            ...property,
+            blocks,
+            projectSettings: getProjectSettings(),
+          };
+          await saveProperty(updatedProperty);
+          setSaveError(null);
+        } catch (error) {
+          if (error instanceof Error && error.message === "Unauthorized") {
+            router.push("/login");
+          } else {
+            console.error("Failed to save property:", error);
+            setSaveError("Failed to save changes");
+          }
+        }
+      }
+    };
+
+    autoSave();
   }, [
     blocks,
     selectedYears,
@@ -179,6 +205,7 @@ export default function BuildProperty() {
     purchaseDate,
     property,
     getProjectSettings,
+    router,
   ]);
 
   const handleExport = async () => {
@@ -326,6 +353,7 @@ export default function BuildProperty() {
     idealCashHoldingBalance,
     estimatedHomeAppreciationRate,
     purchaseDate,
+    setBlocks,
   ]);
 
   useEffect(() => {
@@ -514,6 +542,12 @@ export default function BuildProperty() {
           </div>
         </div>
       </header>
+
+      {saveError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600">{saveError}</p>
+        </div>
+      )}
 
       <div className="flex flex-row gap-4 overflow-x-auto pb-4 items-start">
         {blocks.length === 0 && (

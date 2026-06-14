@@ -5,12 +5,10 @@ import { getCurrentUser } from "@/lib/auth";
 export async function GET() {
   try {
     const payload = await getCurrentUser();
+    console.log("[AUTH/ME] Payload:", payload);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     // Get fresh user data from database
@@ -26,7 +24,7 @@ export async function GET() {
           select: {
             id: true,
             name: true,
-            purchasePrice: true,
+            address: true,
             createdAt: true,
           },
         },
@@ -34,10 +32,7 @@ export async function GET() {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     return NextResponse.json({ user });
@@ -45,7 +40,7 @@ export async function GET() {
     console.error("Get user error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -3,53 +3,52 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Navbar } from "@/components/uiComponents/Navbar";
+import { getProperties } from "@/utils/propertyStorage";
+import type { Property } from "@/types";
 
 interface User {
   id: string;
   email: string;
   name: string | null;
-  properties: Array<{
-    id: string;
-    name: string;
-    purchasePrice: number;
-    createdAt: string;
-  }>;
 }
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch("/api/auth/me");
-        if (!response.ok) {
+        // Fetch user
+        const userResponse = await fetch("/api/auth/me");
+        if (!userResponse.ok) {
           router.push("/login");
           return;
         }
-        const data = await response.json();
-        setUser(data.user);
-      } catch {
-        router.push("/login");
+        const userData = await userResponse.json();
+        setUser(userData.user);
+
+        // Fetch properties
+        const props = await getProperties();
+        setProperties(props);
+        setError(null);
+      } catch (err) {
+        if (err instanceof Error && err.message === "Unauthorized") {
+          router.push("/login");
+        } else {
+          setError("Failed to load data");
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUser();
+    fetchData();
   }, [router]);
-
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/login");
-      router.refresh();
-    } catch {
-      // Handle error
-    }
-  };
 
   if (loading) {
     return (
@@ -63,35 +62,26 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Real Estate Analyzer</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-600">
-              Welcome, {user.name || user.email}
-            </span>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600">{error}</p>
+          </div>
+        )}
+
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">Your Properties</h2>
           <Link
-            href="/build"
+            href="/"
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            + New Analysis
+            + New Property
           </Link>
         </div>
 
-        {user.properties.length === 0 ? (
+        {properties.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <p className="text-gray-600 mb-4">No properties yet</p>
             <Link
@@ -103,14 +93,14 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {user.properties.map((property) => (
+            {properties.map((property) => (
               <div
                 key={property.id}
                 className="bg-white rounded-lg shadow p-6 hover:shadow-md transition"
               >
                 <h3 className="text-lg font-semibold mb-2">{property.name}</h3>
                 <p className="text-gray-600">
-                  Purchase Price: ${property.purchasePrice.toLocaleString()}
+                  {property.address || "No address"}
                 </p>
                 <p className="text-sm text-gray-500 mt-2">
                   Created: {new Date(property.createdAt).toLocaleDateString()}

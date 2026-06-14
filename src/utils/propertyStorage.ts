@@ -1,75 +1,109 @@
-import type { Property, ProjectSettings } from "@/types";
+import type { Property } from "@/types";
 
-const STORAGE_KEY = "real_estate_properties";
+// API-based property storage
+// All operations require authentication
 
-export function getProperties(): Property[] {
-  if (typeof window === "undefined") return [];
+export async function getProperties(): Promise<Property[]> {
   try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+    const response = await fetch("/api/properties");
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Not authenticated - let the caller handle redirect
+        throw new Error("Unauthorized");
+      }
+      throw new Error(`Failed to fetch properties: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.properties || [];
   } catch (error) {
     console.error("Failed to load properties:", error);
-    return [];
+    throw error;
   }
 }
 
-export function getPropertyById(id: string): Property | null {
-  const properties = getProperties();
-  return properties.find((p) => p.id === id) || null;
+export async function getPropertyById(id: string): Promise<Property | null> {
+  try {
+    const response = await fetch(`/api/properties/${id}`);
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Unauthorized");
+      }
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error(`Failed to fetch property: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.property || null;
+  } catch (error) {
+    console.error("Failed to load property:", error);
+    throw error;
+  }
 }
 
-export function saveProperty(property: Property): void {
-  if (typeof window === "undefined") return;
+export async function saveProperty(property: Property): Promise<Property> {
   try {
-    const properties = getProperties();
-    const existingIndex = properties.findIndex((p) => p.id === property.id);
+    const response = await fetch(`/api/properties/${property.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: property.name,
+        address: property.address,
+        blocks: property.blocks,
+        projectSettings: property.projectSettings,
+      }),
+    });
 
-    if (existingIndex >= 0) {
-      properties[existingIndex] = {
-        ...property,
-        updatedAt: new Date().toISOString(),
-      };
-    } else {
-      properties.push({
-        ...property,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Unauthorized");
+      }
+      throw new Error(`Failed to save property: ${response.statusText}`);
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(properties));
+    const data = await response.json();
+    return data.property;
   } catch (error) {
     console.error("Failed to save property:", error);
+    throw error;
   }
 }
 
-export function deleteProperty(id: string): void {
-  if (typeof window === "undefined") return;
+export async function deleteProperty(id: string): Promise<void> {
   try {
-    const properties = getProperties();
-    const filtered = properties.filter((p) => p.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    const response = await fetch(`/api/properties/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Unauthorized");
+      }
+      throw new Error(`Failed to delete property: ${response.statusText}`);
+    }
   } catch (error) {
     console.error("Failed to delete property:", error);
+    throw error;
   }
 }
 
-export function createNewProperty(name: string, address: string): Property {
-  const defaultSettings: ProjectSettings = {
-    years: 30,
-    cashStrategy: "profit",
-    idealCashHoldingBalance: 10000,
-    estimatedHomeAppreciationRate: 3,
-    purchaseDate: new Date().toISOString().split("T")[0],
-  };
+export async function createNewProperty(
+  name: string,
+  address: string,
+): Promise<Property> {
+  const response = await fetch("/api/properties", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, address }),
+  });
 
-  return {
-    id: `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    name,
-    address,
-    blocks: [],
-    projectSettings: defaultSettings,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Unauthorized");
+    }
+    throw new Error(`Failed to create property: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.property;
 }

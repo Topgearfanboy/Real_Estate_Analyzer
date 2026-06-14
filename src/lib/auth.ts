@@ -1,12 +1,12 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-const JWT_EXPIRES_IN = "7d";
+const JWT_SECRET =
+  process.env.JWT_SECRET || "your-secret-key-change-in-production";
 const COOKIE_NAME = "auth-token";
 
-export interface TokenPayload {
+export interface TokenPayload extends Record<string, unknown> {
   userId: string;
   email: string;
 }
@@ -17,32 +17,50 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function verifyPassword(
   password: string,
-  hashedPassword: string
+  hashedPassword: string,
 ): Promise<boolean> {
   return bcrypt.compare(password, hashedPassword);
 }
 
-export function generateToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+export async function generateToken(payload: TokenPayload): Promise<string> {
+  const secret = new TextEncoder().encode(JWT_SECRET);
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime("7d")
+    .sign(secret);
 }
 
-export function verifyToken(token: string): TokenPayload | null {
+export async function verifyToken(token: string): Promise<TokenPayload | null> {
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
-  } catch {
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret);
+    console.log("[AUTH] Token verified successfully:", payload.email);
+    return { userId: payload.userId as string, email: payload.email as string };
+  } catch (error) {
+    console.log(
+      "[AUTH] Token verification failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return null;
   }
 }
 
 export async function setAuthCookie(token: string): Promise<void> {
   const cookieStore = await cookies();
+  console.log(
+    "[AUTH] Setting cookie:",
+    COOKIE_NAME,
+    "token length:",
+    token.length,
+  );
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: false, // Allow cookies on localhost for development
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: "/",
   });
+  console.log("[AUTH] Cookie set complete");
 }
 
 export async function removeAuthCookie(): Promise<void> {
@@ -58,7 +76,7 @@ export async function getAuthToken(): Promise<string | undefined> {
 export async function getCurrentUser() {
   const token = await getAuthToken();
   if (!token) return null;
-  
-  const payload = verifyToken(token);
+
+  const payload = await verifyToken(token);
   return payload;
 }

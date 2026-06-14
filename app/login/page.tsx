@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -13,26 +11,32 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("[LOGIN] Form submitted", { email });
     setError("");
     setLoading(true);
 
     try {
+      console.log("[LOGIN] Sending request to /api/auth/login");
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
+      console.log("[LOGIN] Response status:", response.status);
       const data = await response.json();
+      console.log("[LOGIN] Response data:", data);
 
       if (!response.ok) {
         setError(data.error || "Login failed");
         return;
       }
 
-      router.push("/dashboard");
-      router.refresh();
-    } catch {
+      console.log("[LOGIN] Success, redirecting to /");
+      // Use hard navigation to ensure cookie is picked up by middleware
+      window.location.href = "/";
+    } catch (err) {
+      console.error("[LOGIN] Error:", err);
       setError("An error occurred. Please try again.");
     } finally {
       setLoading(false);
